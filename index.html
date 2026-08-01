@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#7A1E22">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>હિસાબ ચોપડી</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700;800&family=Noto+Serif+Gujarati:wght@600;700&display=swap');
+
+  :root{
+    --paper:#F6EEDD;
+    --paper-line:#E3D3AC;
+    --ink:#3A2E20;
+    --ink-soft:#7A6A50;
+    --cloth:#7A1E22;
+    --cloth-dark:#5C1418;
+    --gold:#B8863B;
+    --jama:#1F6E43;
+    --jama-bg:#E4F1E7;
+    --ukhad:#A02A2A;
+    --ukhad-bg:#FBE7E4;
+    --card:#FFFDF7;
+    --shadow:0 2px 8px rgba(58,46,32,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Noto Sans Gujarat','Noto Sans Gujarati',sans-serif;
+    background:
+      repeating-linear-gradient(var(--paper) 0px, var(--paper) 34px, var(--paper-line) 35px),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    padding-bottom:90px;
+  }
+
+  /* Header — cloth-bound ledger spine */
+  header{
+    background:linear-gradient(180deg,var(--cloth) 0%,var(--cloth-dark) 100%);
+    color:#F3E4C8;
+    padding:12px 16px 14px;
+    position:relative;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+  }
+  header::after{
+    content:"";
+    position:absolute;left:0;right:0;bottom:-6px;height:6px;
+    background:repeating-linear-gradient(90deg,var(--gold) 0 14px, transparent 14px 28px);
+    opacity:.55;
+  }
+  .h-title{
+    font-family:'Noto Serif Gujarati',serif;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:.5px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .h-gear{font-size:18px;cursor:pointer;opacity:.85;}
+  .h-sub{font-size:10.5px;opacity:.7;margin-top:2px;}
+  .grand-total{
+    margin-top:8px;
+    display:flex;justify-content:space-between;align-items:baseline;
+    background:rgba(0,0,0,0.18);
+    border-radius:9px;padding:6px 12px;
+  }
+  .grand-total .lbl{font-size:11px;opacity:.8;}
+  .grand-total .val{font-family:'Noto Serif Gujarati',serif;font-size:17px;font-weight:700;}
+
+  /* Group tabs */
+  .tabs{
+    display:flex;gap:8px;padding:10px 14px 4px;overflow-x:auto;
+  }
+  .tab{
+    flex:0 0 auto;
+    padding:9px 16px;
+    border-radius:20px;
+    background:var(--card);
+    border:1.5px solid var(--paper-line);
+    font-weight:600;font-size:14.5px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+    box-shadow:var(--shadow);
+  }
+  .tab.active{
+    background:var(--cloth);
+    color:#F3E4C8;
+    border-color:var(--cloth-dark);
+  }
+  .tab.add-tab{
+    color:var(--gold);border-style:dashed;font-weight:700;
+  }
+
+  main{padding:14px;}
+
+  .group-total{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 4px 14px;
+    border-bottom:2px dashed var(--paper-line);
+    margin-bottom:12px;
+  }
+  .group-total .g-lbl{font-size:13px;color:var(--ink-soft);}
+  .group-total .g-val{font-family:'Noto Serif Gujarati',serif;font-weight:700;font-size:19px;}
+
+  /* Party card */
+  .party-card{
+    background:var(--card);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    margin-bottom:10px;
+    overflow:hidden;
+    border-left:5px solid var(--gold);
+  }
+  .party-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:13px 14px;
+    cursor:pointer;
+  }
+  .p-name{font-weight:700;font-size:16px;}
+  .p-icon{font-size:13px;margin-left:8px;opacity:0.65;cursor:pointer;}
+  .p-icon:active{opacity:1;}
+  .p-count{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .p-bal{font-family:'Noto Serif Gujarati',serif;font-weight:700;font-size:17px;text-align:right;}
+  .p-bal.owe{color:var(--ukhad);}
+  .p-bal.recv{color:var(--jama);}
+  .p-bal.zero{color:var(--ink-soft);}
+  .p-bal small{display:block;font-family:'Noto Sans Gujarati',sans-serif;font-weight:600;font-size:10.5px;}
+
+  .entries{
+    display:none;
+    border-top:1px dashed var(--paper-line);
+    padding:6px 14px 12px;
+  }
+  .entries.open{display:block;}
+  .entry-row{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:9px 0;
+    border-bottom:1px solid var(--paper-line);
+    gap:8px;
+  }
+  .entry-row:last-child{border-bottom:none;}
+  .e-left .e-date{font-size:11px;color:var(--ink-soft);}
+  .e-left .e-desc{font-size:13.5px;margin-top:1px;}
+  .e-left .e-mode{font-size:10.5px;color:var(--gold);margin-top:1px;font-weight:600;}
+  .e-left .e-time{font-size:10.5px;color:var(--ink-soft);margin-top:1px;font-style:italic;}
+  .e-right{text-align:right;white-space:nowrap;}
+  .e-amt{font-weight:700;font-size:14.5px;}
+  .e-amt.jama{color:var(--jama);}
+  .e-amt.ukhad{color:var(--ukhad);}
+  .e-tag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;display:inline-block;margin-bottom:2px;}
+  .e-tag.jama{background:var(--jama-bg);color:var(--jama);}
+  .e-tag.ukhad{background:var(--ukhad-bg);color:var(--ukhad);}
+  .e-del{color:#B0A28A;font-size:16px;margin-left:6px;cursor:pointer;}
+
+  .party-actions{
+    display:flex;gap:8px;padding:10px 14px 12px;
+    border-top:1px dashed var(--paper-line);
+  }
+  .mini-btn{
+    flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--paper-line);
+    background:var(--paper);font-size:12.5px;font-weight:600;color:var(--ink);
+    text-align:center;
+  }
+  .mini-btn.share{color:#1F6E43;border-color:#1F6E43;}
+
+  .empty{
+    text-align:center;color:var(--ink-soft);padding:40px 20px;font-size:14px;
+  }
+
+  /* Add party button */
+  .add-party-btn{
+    width:100%;padding:13px;border-radius:12px;
+    background:var(--card);border:2px dashed var(--gold);
+    color:var(--gold);font-weight:700;font-size:14.5px;
+    margin-top:6px;
+  }
+
+  /* FAB */
+  .fab{
+    position:fixed;right:18px;bottom:18px;
+    width:58px;height:58px;border-radius:50%;
+    background:var(--cloth);color:#F3E4C8;
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;box-shadow:0 4px 14px rgba(0,0,0,0.3);
+    border:none;
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.45);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--paper);width:100%;max-width:480px;
+    border-radius:18px 18px 0 0;padding:20px 18px 0;
+    max-height:88vh;overflow-y:auto;
+    box-shadow:0 -4px 20px rgba(0,0,0,0.3);
+  }
+  .sheet h3{
+    font-family:'Noto Serif Gujarati',serif;margin:0 0 14px;font-size:19px;color:var(--cloth-dark);
+  }
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:600;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:11px 12px;border-radius:9px;
+    border:1.5px solid var(--paper-line);background:var(--card);
+    font-family:inherit;font-size:15px;color:var(--ink);
+  }
+  .field textarea{resize:none;height:44px;}
+  .toggle-row{display:flex;gap:10px;}
+  .toggle-opt{
+    flex:1;padding:11px;text-align:center;border-radius:9px;
+    border:2px solid var(--paper-line);font-weight:700;font-size:14px;
+    color:var(--ink-soft);background:var(--card);
+  }
+  .toggle-opt.sel.jama{border-color:var(--jama);background:var(--jama-bg);color:var(--jama);}
+  .toggle-opt.sel.ukhad{border-color:var(--ukhad);background:var(--ukhad-bg);color:var(--ukhad);}
+  .mode-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .mode-opt{
+    padding:8px 14px;border-radius:16px;border:1.5px solid var(--paper-line);
+    font-size:13px;font-weight:600;color:var(--ink-soft);background:var(--card);
+  }
+  .mode-opt.sel{border-color:var(--gold);background:#FCF0D8;color:var(--ink);}
+  .to-tab{
+    flex:1;padding:10px;text-align:center;border-radius:9px;
+    border:2px solid var(--paper-line);font-weight:700;font-size:13.5px;
+    color:var(--ink-soft);background:var(--card);cursor:pointer;
+  }
+  .to-tab.sel{border-color:#7A4E1E;background:#F3E4C8;color:#7A4E1E;}
+  .sheet-actions{
+    display:flex;gap:10px;margin-top:16px;
+    position:sticky;bottom:0;background:var(--paper);
+    padding:12px 0 20px;
+  }
+  .btn{
+    flex:1;padding:13px;border-radius:10px;border:none;
+    font-weight:700;font-size:15px;
+  }
+  .btn.cancel{background:var(--card);border:1.5px solid var(--paper-line);color:var(--ink-soft);}
+  .btn.save{background:var(--cloth);color:#F3E4C8;}
+
+  .toast{
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#F6EEDD;padding:10px 18px;border-radius:20px;
+    font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:60;
+  }
+  .toast.show{opacity:1;}
+
+  /* Excel-style monthly matrix */
+  .mtable-wrap{overflow-x:auto;margin-top:10px;-webkit-overflow-scrolling:touch;}
+  table.mtable{border-collapse:collapse;font-size:12px;white-space:nowrap;min-width:100%;}
+  table.mtable th, table.mtable td{
+    border:1px solid var(--paper-line);padding:5px 7px;text-align:right;
+  }
+  table.mtable th{background:var(--cloth);color:#F3E4C8;font-weight:700;position:sticky;top:0;z-index:1;text-align:center;}
+  table.mtable td.sr, table.mtable th.sr{text-align:center;width:22px;padding:5px 4px;}
+  table.mtable td.pname, table.mtable th.pname{text-align:left;font-weight:600;position:sticky;left:0;background:var(--card);z-index:2;}
+  table.mtable th.pname{background:var(--cloth);z-index:3;}
+  table.mtable td.total, table.mtable th.total{
+    position:sticky;right:0;z-index:2;background:#FCF0D8;font-weight:800;
+    box-shadow:-2px 0 4px rgba(58,46,32,0.15);
+  }
+  table.mtable th.total{background:var(--cloth);color:#F3E4C8;z-index:3;box-shadow:none;}
+  table.mtable tr.grp-head td{
+    background:var(--gold);color:#3A2E20;font-weight:800;font-size:13px;text-align:left;
+    position:relative;
+  }
+  table.mtable tr.grp-total td.total{background:#F3DFA8;}
+  table.mtable tr.grp-total td{background:#FCF0D8;font-weight:800;}
+  table.mtable td.neg{color:var(--jama);}
+  table.mtable td.pos{color:var(--ukhad);}
+  table.mtable td.zero{color:var(--ink-soft);}
+  table.mtable td.cell-multi{vertical-align:top;padding:4px 6px;max-width:120px;}
+  table.mtable tr.sub-row td{border-top:none;padding-top:1px;padding-bottom:5px;}
+  .cl-line{white-space:nowrap;line-height:1.5;}
+  .cl-line.pos{color:var(--ukhad);font-weight:700;}
+  .cl-line.neg{color:var(--jama);}
+  .cl-line.cl-wrap{white-space:normal;font-size:11px;}
+  .cl-date{font-size:9px;color:var(--ink-soft);margin-left:2px;}
+</style>
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<body>
+
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="h-title">📖 હિસાબ ચોપડી</div>
+    <div class="h-gear" onclick="openBackup()">⚙️</div>
+  </div>
+  <div class="h-sub">ગ્રુપ મુજબ પાર્ટી હિસાબ</div>
+  <div class="grand-total">
+    <div><div class="lbl">કુલ બાકી (બધા ગ્રુપ)</div></div>
+    <div class="val" id="grandTotal">₹0</div>
+  </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<main>
+  <div style="display:flex;gap:6px;margin-bottom:12px;">
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;" onclick="openAddParty()">+ નવી પાર્ટી</button>
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;border-color:var(--jama);color:var(--jama);" onclick="openMonthAnalysis()">📊 મહિનાવાર</button>
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;border-color:#7A4E1E;color:#7A4E1E;" onclick="openTurnover()">📈 ટર્નઓવર</button>
+  </div>
+  <div class="group-total">
+    <div class="g-lbl" id="groupLabel">ગ્રુપ કુલ બાકી</div>
+    <div class="g-val" id="groupTotal">₹0</div>
+  </div>
+  <div id="partyList"></div>
+</main>
+
+<button class="fab" onclick="openAddEntry()">+</button>
+
+<!-- Add Entry Modal -->
+<div class="overlay" id="entryOverlay">
+  <div class="sheet">
+    <h3>નવો હિસાબ ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપ</label>
+      <select id="e_group"></select>
+    </div>
+    <div class="field">
+      <label>પાર્ટીનું નામ</label>
+      <select id="e_party"></select>
+    </div>
+    <div class="field">
+      <label>તારીખ</label>
+      <input type="date" id="e_date">
+    </div>
+    <div class="field">
+      <label>રકમ (₹)</label>
+      <input type="number" id="e_amount" inputmode="numeric" placeholder="0">
+    </div>
+    <div class="field">
+      <label>જમા કે ઉધાર?</label>
+      <div class="toggle-row">
+        <div class="toggle-opt jama" id="opt_jama" onclick="setType('jama')">જમા</div>
+        <div class="toggle-opt ukhad" id="opt_ukhad" onclick="setType('ukhad')">બાકી</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Payment Mode</label>
+      <div class="mode-row" id="modeRow">
+        <div class="mode-opt sel" data-m="રોકડ">રોકડ</div>
+        <div class="mode-opt" data-m="Google Pay">Google Pay</div>
+        <div class="mode-opt" data-m="બેંક">બેંક</div>
+        <div class="mode-opt" data-m="કસર −">કસર −</div>
+        <div class="mode-opt" data-m="વધુ +">વધુ +</div>
+        <div class="mode-opt" data-m="માલ જમા">માલ જમા</div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('entryOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveEntry()">સેવ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Party Modal -->
+<div class="overlay" id="partyOverlay">
+  <div class="sheet">
+    <h3>નવી પાર્ટી ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપ</label>
+      <select id="np_group"></select>
+    </div>
+    <div class="field">
+      <label>પાર્ટીનું નામ</label>
+      <input type="text" id="np_name" placeholder="પાર્ટીનું નામ લખો">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('partyOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveParty()">ઉમેરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Group Modal -->
+<div class="overlay" id="groupOverlay">
+  <div class="sheet">
+    <h3>નવું ગ્રુપ ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપનું નામ</label>
+      <input type="text" id="ng_name" placeholder="દા.ત. નવો ટુર">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('groupOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveGroup()">ઉમેરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Month Analysis Modal -->
+<div class="overlay" id="monthOverlay">
+  <div class="sheet" style="max-width:96vw;">
+    <h3>મહિનાવાર હિસાબ (ગ્રુપ મુજબ)</h3>
+    <div id="ma_results"></div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('monthOverlay')">બંધ કરો</button>
+      <button class="btn save" onclick="exportMonthImage()">📸 ફોટો તરીકે સેવ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup / Restore Modal -->
+<div class="overlay" id="backupOverlay">
+  <div class="sheet">
+    <h3>બેકઅપ / રિસ્ટોર</h3>
+    <button class="add-party-btn" style="margin-bottom:10px;" onclick="downloadBackup()">⬇️ બેકઅપ ડાઉનલોડ કરો</button>
+    <label class="add-party-btn" style="display:block;text-align:center;border-color:var(--jama);color:var(--jama);cursor:pointer;">
+      ⬆️ બેકઅપ પાછું લાવો (Restore)
+      <input type="file" id="restoreFile" accept="application/json" style="display:none;" onchange="restoreBackup(event)">
+    </label>
+    <div style="font-size:11.5px;color:var(--ink-soft);margin-top:12px;line-height:1.6;">
+      બેકઅપ ફાઇલ WhatsApp, Google Drive કે Email માં સેવ કરી રાખો — ફોન બદલો કે ડિલિટ થાય તોય ડેટા પાછો લાવી શકાશે. ✔ Restore કરવાથી હાલનો બધો ડેટા બદલાઈ જશે, એટલે જૂનું બેકઅપ સાચવીને જ Restore કરવું.
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('backupOverlay')">બંધ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Turnover Modal -->
+<div class="overlay" id="turnoverOverlay">
+  <div class="sheet">
+    <h3>ટર્નઓવર / કલેક્શન</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div class="to-tab sel" id="to_tab_turnover" onclick="switchToTab('turnover')">📈 ટર્નઓવર</div>
+      <div class="to-tab" id="to_tab_collection" onclick="switchToTab('collection')">💰 કલેક્શન</div>
+    </div>
+    <div class="field">
+      <label>વર્ષ</label>
+      <select id="to_year" onchange="renderTurnover()"></select>
+    </div>
+    <div id="to_results"></div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('turnoverOverlay')">બંધ કરો</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'hisab_chopdi_data_v1';
+let data = loadData();
+let currentGroup = Object.keys(data.groups)[0] || null;
+let expandedParty = null;
+let selectedType = 'jama';
+let selectedMode = 'રોકડ';
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {
+    groups:{
+      "Ravapar":{parties:{}},
+      "Naliya":{parties:{}},
+      "Pandhro":{parties:{}}
+    }
+  };
+}
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1600);
+}
+function fmt(n){
+  n = Math.round(n);
+  return '₹' + n.toLocaleString('en-IN');
+}
+
+function partyBalance(group,party){
+  const entries = data.groups[group].parties[party].entries;
+  let bal=0;
+  entries.forEach(e=>{ bal += (e.type==='ukhad'? e.amount : -e.amount); });
+  return bal; // positive = customer owes us (ukhad), negative = we owe / advance
+}
+function groupTotal(group){
+  let t=0;
+  Object.keys(data.groups[group].parties).forEach(p=>{ t+=partyBalance(group,p); });
+  return t;
+}
+function grandTotal(){
+  let t=0;
+  Object.keys(data.groups).forEach(g=>{ t+=groupTotal(g); });
+  return t;
+}
+
+function renderTabs(){
+  const tabs=document.getElementById('tabs');
+  tabs.innerHTML='';
+  Object.keys(data.groups).forEach(g=>{
+    const el=document.createElement('div');
+    el.className='tab'+(g===currentGroup?' active':'');
+    el.textContent=g;
+    el.onclick=()=>{currentGroup=g;expandedParty=null;renderAll();};
+    tabs.appendChild(el);
+  });
+  const addTab=document.createElement('div');
+  addTab.className='tab add-tab';
+  addTab.textContent='+ ગ્રુપ';
+  addTab.onclick=openAddGroup;
+  tabs.appendChild(addTab);
+}
+
+function renderGroupTotal(){
+  document.getElementById('groupLabel').textContent = (currentGroup||'—') + ' - કુલ બાકી';
+  const gt = currentGroup ? groupTotal(currentGroup) : 0;
+  const el=document.getElementById('groupTotal');
+  el.textContent = fmt(Math.abs(gt)) + (gt>0?' (લેવાના)':gt<0?' (દેવાના)':'');
+  document.getElementById('grandTotal').textContent = fmt(Math.abs(grandTotal()));
+}
+
+function renderPartyList(){
+  const list=document.getElementById('partyList');
+  list.innerHTML='';
+  if(!currentGroup){ list.innerHTML='<div class="empty">પહેલા ગ્રુપ બનાવો</div>'; return; }
+  const parties = Object.keys(data.groups[currentGroup].parties);
+  if(parties.length===0){
+    list.innerHTML='<div class="empty">આ ગ્રુપમાં હજુ કોઈ પાર્ટી નથી.<br>નીચે "+ નવી પાર્ટી ઉમેરો" દબાવો.</div>';
+    return;
+  }
+  parties.sort((a,b)=>a.localeCompare(b,'gu')).forEach(p=>{
+    const bal = partyBalance(currentGroup,p);
+    const entries = data.groups[currentGroup].parties[p].entries.slice().sort((a,b)=>a.date.localeCompare(b.date));
+    const card=document.createElement('div');
+    card.className='party-card';
+
+    const balClass = bal>0?'owe':bal<0?'recv':'zero';
+    const balLabel = bal>0?'લેવાના':bal<0?'દેવાના':'ક્લિયર';
+
+    card.innerHTML = `
+      <div class="party-head" onclick="toggleParty('${p.replace(/'/g,"\\'")}')">
+        <div>
+          <div class="p-name">${p}
+            <span class="p-icon" onclick="renamePartyPrompt(event,'${currentGroup.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}')">✏️</span>
+            <span class="p-icon" onclick="deletePartyConfirm(event,'${currentGroup.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}')">🗑️</span>
+          </div>
+          <div class="p-count">${entries.length} એન્ટ્રી</div>
+        </div>
+        <div class="p-bal ${balClass}">${fmt(Math.abs(bal))}<small>${balLabel}</small></div>
+      </div>
+      <div class="entries ${expandedParty===p?'open':''}" id="ent_${cssSafe(p)}">
+        ${entries.length? entries.map(e=>entryRow(p,e)).join('') : '<div class="empty" style="padding:16px 0;">કોઈ એન્ટ્રી નથી</div>'}
+      </div>
+      <div class="party-actions">
+        <div class="mini-btn" onclick="quickAdd('${p.replace(/'/g,"\\'")}')">+ એન્ટ્રી</div>
+        <div class="mini-btn share" onclick="shareParty('${p.replace(/'/g,"\\'")}')">📤 WhatsApp</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+function cssSafe(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+function timeAgo(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  if(isNaN(d.getTime())) return '';
+  let months = (now.getFullYear()-d.getFullYear())*12 + (now.getMonth()-d.getMonth());
+  let days = now.getDate()-d.getDate();
+  if(days<0){
+    months-=1;
+    const prevMonthLastDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    days += prevMonthLastDay;
+  }
+  if(months<0 || (months===0&&days<0)) return 'આજે';
+  if(months===0 && days===0) return 'આજે';
+  let parts=[];
+  if(months>0) parts.push(months+' મહિનો');
+  if(days>0) parts.push(days+' દિવસ');
+  return parts.join(' ')+' પહેલા';
+}
+
+function entryRow(party,e){
+  return `
+    <div class="entry-row">
+      <div class="e-left">
+        <span class="e-tag ${e.type}">${e.type==='jama'?'જમા':'બાકી'}</span>
+        <div class="e-desc">${e.desc||'-'}</div>
+        <div class="e-date">${e.date} • ${e.mode}</div>
+        <div class="e-time">${timeAgo(e.date)}</div>
+      </div>
+      <div class="e-right">
+        <div class="e-amt ${e.type}">${fmt(e.amount)}</div>
+        <span class="e-del" onclick="delEntry(event,'${currentGroup.replace(/'/g,"\\'")}','${party.replace(/'/g,"\\'")}','${e.id}')">✕</span>
+      </div>
+    </div>
+  `;
+}
+
+function toggleParty(p){
+  expandedParty = expandedParty===p ? null : p;
+  renderPartyList();
+}
+
+function renamePartyPrompt(ev,group,party){
+  ev.stopPropagation();
+  const newName = prompt('પાર્ટીનું નવું નામ લખો:', party);
+  if(newName===null) return;
+  const trimmed = newName.trim();
+  if(!trimmed || trimmed===party) return;
+  if(data.groups[group].parties[trimmed]){
+    showToast('આ નામની પાર્ટી પહેલેથી છે');
+    return;
+  }
+  data.groups[group].parties[trimmed] = data.groups[group].parties[party];
+  delete data.groups[group].parties[party];
+  if(expandedParty===party) expandedParty=trimmed;
+  saveData();
+  renderAll();
+  showToast('નામ બદલાયું');
+}
+
+function deletePartyConfirm(ev,group,party){
+  ev.stopPropagation();
+  const entries = data.groups[group].parties[party].entries;
+  const msg = entries.length>0
+    ? `"${party}" ને ${entries.length} એન્ટ્રી છે. ડિલીટ કરવાથી બધો હિસાબ કાયમ માટે જતો રહેશે. ખરેખર ડિલીટ કરવું છે?`
+    : `"${party}" ડિલીટ કરવી છે?`;
+  if(!confirm(msg)) return;
+  delete data.groups[group].parties[party];
+  if(expandedParty===party) expandedParty=null;
+  saveData();
+  renderAll();
+  showToast('પાર્ટી ડિલીટ થઈ');
+}
+
+function delEntry(ev,group,party,id){
+  ev.stopPropagation();
+  if(!confirm('આ એન્ટ્રી ડિલિટ કરવી છે?')) return;
+  const arr = data.groups[group].parties[party].entries;
+  data.groups[group].parties[party].entries = arr.filter(x=>x.id!==id);
+  saveData();
+  renderAll();
+  showToast('એન્ટ્રી ડિલિટ થઈ');
+}
+
+function renderAll(){
+  renderTabs();
+  renderGroupTotal();
+  renderPartyList();
+}
+
+/* ---- Add Entry ---- */
+function openAddEntry(){
+  const gSel=document.getElementById('e_group');
+  gSel.innerHTML = Object.keys(data.groups).map(g=>`<option value="${g}">${g}</option>`).join('');
+  gSel.value = currentGroup || Object.keys(data.groups)[0];
+  gSel.onchange = fillPartySelect;
+  fillPartySelect();
+  document.getElementById('e_date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('e_amount').value='';
+  setType('jama');
+  setMode('રોકડ');
+  document.getElementById('entryOverlay').classList.add('open');
+}
+function fillPartySelect(){
+  const g = document.getElementById('e_group').value;
+  const pSel = document.getElementById('e_party');
+  const parties = Object.keys(data.groups[g].parties);
+  pSel.innerHTML = parties.length
+    ? parties.map(p=>`<option value="${p}">${p}</option>`).join('')
+    : '<option value="">-- પહેલા પાર્ટી ઉમેરો --</option>';
+}
+function quickAdd(party){
+  openAddEntry();
+  document.getElementById('e_group').value = currentGroup;
+  fillPartySelect();
+  document.getElementById('e_party').value = party;
+}
+function setType(t){
+  selectedType=t;
+  document.getElementById('opt_jama').classList.toggle('sel',t==='jama');
+  document.getElementById('opt_ukhad').classList.toggle('sel',t==='ukhad');
+}
+document.getElementById('modeRow').addEventListener('click',e=>{
+  if(e.target.classList.contains('mode-opt')) setMode(e.target.dataset.m);
+});
+function setMode(m){
+  selectedMode=m;
+  document.querySelectorAll('.mode-opt').forEach(el=>{
+    el.classList.toggle('sel', el.dataset.m===m);
+  });
+}
+function saveEntry(){
+  const g=document.getElementById('e_group').value;
+  const p=document.getElementById('e_party').value;
+  const date=document.getElementById('e_date').value;
+  const amount=parseFloat(document.getElementById('e_amount').value);
+  if(!p){ showToast('પહેલા પાર્ટી ઉમેરો'); return; }
+  if(!date || !amount || amount<=0){ showToast('તારીખ અને રકમ ભરો'); return; }
+  const entry={ id:'e'+Date.now()+Math.random().toString(36).slice(2,6), date, amount, type:selectedType, desc:'', mode:selectedMode };
+  data.groups[g].parties[p].entries.push(entry);
+  saveData();
+  currentGroup=g;
+  closeOverlay('entryOverlay');
+  renderAll();
+  showToast('હિસાબ સેવ થયો');
+}
+
+/* ---- Add Party ---- */
+function openAddParty(){
+  const gSel=document.getElementById('np_group');
+  gSel.innerHTML = Object.keys(data.groups).map(g=>`<option value="${g}">${g}</option>`).join('');
+  gSel.value = currentGroup || Object.keys(data.groups)[0];
+  document.getElementById('np_name').value='';
+  document.getElementById('partyOverlay').classList.add('open');
+}
+function saveParty(){
+  const g=document.getElementById('np_group').value;
+  const name=document.getElementById('np_name').value.trim();
+  if(!name){ showToast('પાર્ટીનું નામ લખો'); return; }
+  if(data.groups[g].parties[name]){ showToast('આ નામની પાર્ટી પહેલેથી છે'); return; }
+  data.groups[g].parties[name]={entries:[]};
+  saveData();
+  currentGroup=g;
+  closeOverlay('partyOverlay');
+  renderAll();
+  showToast('પાર્ટી ઉમેરાઈ');
+}
+
+/* ---- Add Group ---- */
+function openAddGroup(){
+  document.getElementById('ng_name').value='';
+  document.getElementById('groupOverlay').classList.add('open');
+}
+function saveGroup(){
+  const name=document.getElementById('ng_name').value.trim();
+  if(!name){ showToast('ગ્રુપનું નામ લખો'); return; }
+  if(data.groups[name]){ showToast('આ નામનું ગ્રુપ પહેલેથી છે'); return; }
+  data.groups[name]={parties:{}};
+  saveData();
+  currentGroup=name;
+  closeOverlay('groupOverlay');
+  renderAll();
+  showToast('ગ્રુપ ઉમેરાયું');
+}
+
+function closeOverlay(id){ document.getElementById(id).classList.remove('open'); }
+
+/* ---- WhatsApp share ---- */
+function shareParty(party){
+  const entries = data.groups[currentGroup].parties[party].entries.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const bal = partyBalance(currentGroup,party);
+  let msg = `*${party}* (${currentGroup}) - હિસાબ\n\n`;
+  entries.forEach(e=>{
+    msg += `${e.date} - ${e.type==='jama'?'જમા':'બાકી'} ${fmt(e.amount)}`;
+    if(e.desc) msg += ` (${e.desc})`;
+    msg += `\n`;
+  });
+  msg += `\n*કુલ ${bal>0?'લેવાના':bal<0?'દેવાના':'બાકી'}: ${fmt(Math.abs(bal))}*`;
+  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
+
+/* ---- Month-wise Excel-style matrix ---- */
+const gujMonths=['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગસ્ટ','સપ્ટેમ્બર','ઓક્ટોબર','નવેમ્બર','ડિસેમ્બર'];
+function fmtPlain(n){ return Math.round(n).toLocaleString('en-IN'); }
+function cellDisp(v){
+  if(v===0) return '-';
+  return v<0 ? ('-'+fmtPlain(Math.abs(v))) : fmtPlain(v);
+}
+function cellCls(v){ return v>0?'pos':v<0?'neg':'zero'; }
+/* FIFO allocation: a jama (payment) is applied against the OLDEST outstanding
+   ukhad first, so a bill from month 6 paid off in month 8 shows the reduction
+   in month 6's own column, not as a separate line in month 8. Any payment left
+   over after clearing all old dues becomes an advance credit shown (with minus)
+   in the month the payment was actually made. */
+function computeFIFOByMonth(entries){
+  const sorted = entries.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const bills=[], advances=[];
+  sorted.forEach(e=>{
+    const month = e.date.slice(0,7);
+    if(e.type==='ukhad'){
+      let amt=e.amount, i=0;
+      while(amt>0 && i<advances.length){
+        if(advances[i].remaining<0){
+          const avail=-advances[i].remaining;
+          if(avail<=amt){ amt-=avail; advances[i].remaining=0; i++; }
+          else { advances[i].remaining+=amt; amt=0; }
+        } else i++;
+      }
+      if(amt>0) bills.push({month, remaining:amt});
+    } else {
+      let amt=e.amount, i=0;
+      while(amt>0 && i<bills.length){
+        if(bills[i].remaining>0){
+          if(bills[i].remaining<=amt){ amt-=bills[i].remaining; bills[i].remaining=0; i++; }
+          else { bills[i].remaining-=amt; amt=0; }
+        } else i++;
+      }
+      if(amt>0) advances.push({month, remaining:-amt});
+    }
+  });
+  const byMonth={};
+  bills.forEach(b=>{ byMonth[b.month]=(byMonth[b.month]||0)+b.remaining; });
+  advances.forEach(a=>{ byMonth[a.month]=(byMonth[a.month]||0)+a.remaining; });
+  return byMonth;
+}
+/* Breakdown version: keeps the ORIGINAL bill amount untouched and lists each
+   payment applied against it as a separate line (with date), instead of
+   netting them into one number. Used only for on-screen display; totals
+   still use computeFIFOByMonth above so figures stay consistent. */
+function computeFIFOBreakdown(entries){
+  const sorted = entries.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const bills=[], advances=[];
+  sorted.forEach(e=>{
+    const month = e.date.slice(0,7);
+    if(e.type==='ukhad'){
+      let amt=e.amount, i=0;
+      while(amt>0 && i<advances.length){
+        if(advances[i].remaining<0){
+          const avail=-advances[i].remaining;
+          if(avail<=amt){ amt-=avail; advances[i].remaining=0; i++; }
+          else { advances[i].remaining+=amt; amt=0; }
+        } else i++;
+      }
+      bills.push({month, date:e.date, original:e.amount, remaining:amt, lines:[]});
+    } else {
+      let amt=e.amount, i=0;
+      while(amt>0 && i<bills.length){
+        if(bills[i].remaining>0){
+          const portion = Math.min(bills[i].remaining, amt);
+          bills[i].remaining -= portion; amt -= portion;
+          bills[i].lines.push({amt:-portion, date:e.date});
+        }
+        i++;
+      }
+      if(amt>0) advances.push({month, date:e.date, remaining:-amt});
+    }
+  });
+  const byMonth={};
+  function pushLine(m,line){ (byMonth[m]=byMonth[m]||[]).push(line); }
+  bills.forEach(b=>{
+    pushLine(b.month, {amt:b.original, date:b.date});
+    b.lines.forEach(l=>pushLine(b.month, l));
+  });
+  advances.forEach(a=>{ if(a.remaining<0) pushLine(a.month, {amt:a.remaining, date:a.date}); });
+  Object.keys(byMonth).forEach(m=>byMonth[m].sort((a,b)=>a.date.localeCompare(b.date)));
+  return byMonth;
+}
+function shortDate(ds){
+  const p = ds.split('-');
+  return p[2]+'/'+p[1];
+}
+function lineHtml(l){
+  if(!l) return '-';
+  const cls = l.amt<0 ? 'neg' : 'pos';
+  const val = l.amt<0 ? ('-'+fmtPlain(Math.abs(l.amt))) : fmtPlain(l.amt);
+  return `<div class="cl-line ${cls}">${val}<span class="cl-date">${shortDate(l.date)}</span></div>`;
+}
+function monthLabelShort(ym){
+  const [y,m]=ym.split('-').map(Number);
+  return String(m);
+}
+function monthLabelFull(ym){
+  const [y,m]=ym.split('-').map(Number);
+  return m+"/"+String(y).slice(2);
+}
+function openMonthAnalysis(){
+  document.getElementById('monthOverlay').classList.add('open');
+  runMonthAnalysis();
+}
+function runMonthAnalysis(){
+  const resEl = document.getElementById('ma_results');
+  const monthSet = new Set();
+  Object.keys(data.groups).forEach(gr=>{
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      data.groups[gr].parties[p].entries.forEach(e=>{ monthSet.add(e.date.slice(0,7)); });
+    });
+  });
+  const months = Array.from(monthSet).sort().reverse();
+  if(months.length===0){
+    resEl.innerHTML = '<div class="empty">હજુ કોઈ એન્ટ્રી નથી</div>';
+    return;
+  }
+  const grandRowTotals={}; months.forEach(m=>grandRowTotals[m]=0);
+  let grandTotalAll=0;
+
+  let html = '<div class="mtable-wrap"><table class="mtable"><thead><tr>';
+  html += '<th class="sr">#</th><th class="pname">પાર્ટી</th>';
+  months.forEach(m=>{ html += `<th title="${monthLabelFull(m)}">${monthLabelShort(m)}</th>`; });
+  html += '<th class="total">કુલ</th></tr></thead><tbody>';
+
+  Object.keys(data.groups).forEach(gr=>{
+    const parties = Object.keys(data.groups[gr].parties).filter(p=>data.groups[gr].parties[p].entries.length>0);
+    if(parties.length===0) return;
+    html += `<tr class="grp-head"><td colspan="${months.length+3}">${gr}</td></tr>`;
+    const groupMonthTotals={}; months.forEach(m=>groupMonthTotals[m]=0);
+    let groupGrand=0;
+    parties.sort((a,b)=>a.localeCompare(b,'gu')).forEach((p,idx)=>{
+      const entries = data.groups[gr].parties[p].entries;
+      const byMonth = computeFIFOByMonth(entries);
+      const byMonthLines = computeFIFOBreakdown(entries);
+      let rowTotal=0, cells='', maxExtra=0;
+      months.forEach(m=>{
+        const net = byMonth[m]||0;
+        rowTotal += net; groupMonthTotals[m]+=net; grandRowTotals[m]+=net;
+        const lines = byMonthLines[m]||[];
+        if(lines.length-1>maxExtra) maxExtra=lines.length-1;
+        cells += `<td class="cell-multi ${cellCls(net)}">${lines.length?lineHtml(lines[0]):'-'}</td>`;
+      });
+      groupGrand += rowTotal; grandTotalAll += rowTotal;
+      html += `<tr><td class="sr">${idx+1}</td><td class="pname">${p}</td>${cells}<td class="total ${cellCls(rowTotal)}">${cellDisp(rowTotal)}</td></tr>`;
+      for(let ei=1; ei<=maxExtra; ei++){
+        let subCells='';
+        months.forEach(m=>{
+          const lines = byMonthLines[m]||[];
+          subCells += `<td class="cell-multi">${lines[ei]?lineHtml(lines[ei]):''}</td>`;
+        });
+        html += `<tr class="sub-row"><td class="sr"></td><td class="pname"></td>${subCells}<td class="total"></td></tr>`;
+      }
+    });
+    let gcells='';
+    months.forEach(m=>{ gcells += `<td class="${cellCls(groupMonthTotals[m])}">${cellDisp(groupMonthTotals[m])}</td>`; });
+    html += `<tr class="grp-total"><td class="sr"></td><td class="pname">કુલ (${gr})</td>${gcells}<td class="total ${cellCls(groupGrand)}">${cellDisp(groupGrand)}</td></tr>`;
+  });
+
+  let grcells='';
+  months.forEach(m=>{ grcells += `<td class="${cellCls(grandRowTotals[m])}">${cellDisp(grandRowTotals[m])}</td>`; });
+  html += `<tr class="grp-total" style="background:var(--gold);border-top:3px double var(--cloth-dark);"><td class="sr"></td><td class="pname" style="background:var(--gold);color:#3A2E20;">સર્વ કુલ</td>${grcells}<td class="total ${cellCls(grandTotalAll)}" style="background:var(--gold);">${cellDisp(grandTotalAll)}</td></tr>`;
+
+  html += '</tbody></table></div>';
+  html += '<div style="font-size:11px;color:var(--ink-soft);margin-top:8px;">અંક = બાકી (લેવાના) &nbsp; − અંક = જમા વધારે (દેવાના)</div>';
+  resEl.innerHTML = html;
+  window._maMonths = months;
+}
+
+function exportMonthImage(){
+  const wrap = document.querySelector('#ma_results .mtable-wrap');
+  if(!wrap || typeof html2canvas==='undefined'){ showToast('ફોટો બનાવવામાં ભૂલ, ફરી પ્રયત્ન કરો'); return; }
+  showToast('ફોટો બનાવાય છે...');
+  const table = wrap.querySelector('table');
+  const clone = table.cloneNode(true);
+  clone.querySelectorAll('th,td').forEach(el=>{
+    el.style.position='static';
+    el.style.boxShadow='none';
+  });
+  clone.style.minWidth='auto';
+  const holder = document.createElement('div');
+  holder.style.position='fixed';
+  holder.style.left='-9999px';
+  holder.style.top='0';
+  holder.style.background='#F6EEDD';
+  holder.style.padding='14px';
+  holder.style.display='inline-block';
+  const heading = document.createElement('div');
+  heading.textContent = 'મહિનાવાર હિસાબ (ગ્રુપ મુજબ)';
+  heading.style.fontFamily = "'Noto Serif Gujarati',serif";
+  heading.style.fontWeight = '700';
+  heading.style.fontSize = '17px';
+  heading.style.color = '#5C1418';
+  heading.style.marginBottom = '10px';
+  holder.appendChild(heading);
+  holder.appendChild(clone);
+  document.body.appendChild(holder);
+  html2canvas(holder, {backgroundColor:'#F6EEDD', scale:2}).then(canvas=>{
+    document.body.removeChild(holder);
+    canvas.toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const today = new Date().toISOString().slice(0,10);
+      a.href = url;
+      a.download = 'mahinavar_hisab_'+today+'.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('ફોટો ડાઉનલોડ થયો');
+    });
+  }).catch(()=>{
+    if(holder.parentNode) document.body.removeChild(holder);
+    showToast('ફોટો બનાવવામાં ભૂલ આવી');
+  });
+}
+
+/* ---- Backup / Restore ---- */
+function openBackup(){
+  document.getElementById('backupOverlay').classList.add('open');
+}
+function downloadBackup(){
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = 'hisab_backup_'+today+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('બેકઅપ ડાઉનલોડ થયો');
+}
+function restoreBackup(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  if(!confirm('આ હાલનો બધો ડેટા બદલી નાખશે. ચાલુ રાખવું છે?')){ ev.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed || !parsed.groups) throw new Error('invalid');
+      data = parsed;
+      saveData();
+      currentGroup = Object.keys(data.groups)[0] || null;
+      expandedParty = null;
+      closeOverlay('backupOverlay');
+      renderAll();
+      showToast('બેકઅપ પાછું આવ્યું');
+    }catch(err){
+      showToast('આ ફાઇલ બરાબર બેકઅપ ફાઇલ નથી');
+    }
+    ev.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+/* ---- Turnover (yearly / month-wise graph) ---- */
+const monShort=['જાન્યુ','ફેબ્રુ','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગ','સપ્ટ','ઓક્ટ','નવે','ડિસે'];
+let toMode = 'turnover';
+function computeTurnover(){
+  // Turnover = total ઉધાર (sale/business) amount, by entry date. Payments (જમા) are not counted.
+  const byYear={};
+  Object.keys(data.groups).forEach(gr=>{
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      data.groups[gr].parties[p].entries.forEach(e=>{
+        if(e.type==='ukhad'){
+          const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
+          if(!byYear[y]) byYear[y]=new Array(12).fill(0);
+          byYear[y][m]+=e.amount;
+        }
+      });
+    });
+  });
+  return byYear;
+}
+function computeCollection(){
+  // Collection = total જમા (payment received - cash/GPay/bank etc) amount, by entry date.
+  const byYear={};
+  Object.keys(data.groups).forEach(gr=>{
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      data.groups[gr].parties[p].entries.forEach(e=>{
+        if(e.type==='jama'){
+          const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
+          if(!byYear[y]) byYear[y]=new Array(12).fill(0);
+          byYear[y][m]+=e.amount;
+        }
+      });
+    });
+  });
+  return byYear;
+}
+function computeCollectionByGroup(){
+  // group -> year -> [12 months] of જમા (collection) totals
+  const byGroup={};
+  Object.keys(data.groups).forEach(gr=>{
+    const byYear={};
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      data.groups[gr].parties[p].entries.forEach(e=>{
+        if(e.type==='jama'){
+          const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
+          if(!byYear[y]) byYear[y]=new Array(12).fill(0);
+          byYear[y][m]+=e.amount;
+        }
+      });
+    });
+    byGroup[gr]=byYear;
+  });
+  return byGroup;
+}
+function switchToTab(mode){
+  toMode = mode;
+  document.getElementById('to_tab_turnover').classList.toggle('sel', mode==='turnover');
+  document.getElementById('to_tab_collection').classList.toggle('sel', mode==='collection');
+  renderTurnover();
+}
+function openTurnover(){
+  toMode = 'turnover';
+  document.getElementById('to_tab_turnover').classList.add('sel');
+  document.getElementById('to_tab_collection').classList.remove('sel');
+  const t = computeTurnover(), c = computeCollection();
+  const years = Array.from(new Set([...Object.keys(t), ...Object.keys(c)])).sort();
+  const ySel = document.getElementById('to_year');
+  if(years.length===0){
+    ySel.innerHTML='';
+    document.getElementById('to_results').innerHTML = '<div class="empty">હજુ કોઈ એન્ટ્રી નથી</div>';
+  } else {
+    ySel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    ySel.value = years[years.length-1];
+  }
+  document.getElementById('turnoverOverlay').classList.add('open');
+  if(years.length>0) renderTurnover();
+}
+function renderGroupCollectionTable(y){
+  const groups = Object.keys(data.groups);
+  if(groups.length===0) return '';
+  const byGroup = computeCollectionByGroup();
+  const rows = groups.map(gr=>{
+    const months = (byGroup[gr] && byGroup[gr][y]) || new Array(12).fill(0);
+    const t = months.reduce((a,b)=>a+b,0);
+    const cells = months.map(v=>`<td>${v>0?fmtPlain(v):'-'}</td>`).join('');
+    return `<tr><td class="pname">${gr}</td>${cells}<td class="total" style="font-weight:800;">${fmtPlain(t)}</td></tr>`;
+  }).join('');
+  return `
+    <div style="margin-top:16px;padding-top:10px;border-top:2px dashed var(--paper-line);">
+      <div style="font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:6px;">ટુર (ગ્રુપ) મુજબ મહિનાવાર કલેક્શન - ${y}</div>
+      <div class="mtable-wrap"><table class="mtable">
+        <thead><tr><th class="pname">ટુર</th>${monShort.map(m=>`<th>${m}</th>`).join('')}<th class="total">કુલ</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>
+  `;
+}
+function renderGroupYearlyCollectionTable(){
+  const groups = Object.keys(data.groups);
+  if(groups.length===0) return '';
+  const byGroup = computeCollectionByGroup();
+  const allYears = new Set();
+  groups.forEach(gr=>{ Object.keys(byGroup[gr]||{}).forEach(y=>allYears.add(y)); });
+  const years = Array.from(allYears).sort();
+  if(years.length===0) return '';
+  const grandPerYear = {}; years.forEach(y=>grandPerYear[y]=0);
+  const rows = groups.map(gr=>{
+    const cells = years.map(y=>{
+      const months = (byGroup[gr] && byGroup[gr][y]) || new Array(12).fill(0);
+      const t = months.reduce((a,b)=>a+b,0);
+      grandPerYear[y]+=t;
+      return `<td>${t>0?fmtPlain(t):'-'}</td>`;
+    }).join('');
+    return `<tr><td class="pname">${gr}</td>${cells}</tr>`;
+  }).join('');
+  const grandRow = `<tr class="grp-total"><td class="pname">કુલ</td>${years.map(y=>`<td class="total">${fmtPlain(grandPerYear[y])}</td>`).join('')}</tr>`;
+  return `
+    <div style="margin-top:16px;padding-top:10px;border-top:2px dashed var(--paper-line);">
+      <div style="font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:6px;">ટુર મુજબ વર્ષવાર કલેક્શન</div>
+      <div class="mtable-wrap"><table class="mtable">
+        <thead><tr><th class="pname">ટુર</th>${years.map(y=>`<th>${y}</th>`).join('')}</tr></thead>
+        <tbody>${rows}${grandRow}</tbody>
+      </table></div>
+    </div>
+  `;
+}
+function renderTurnover(){
+  const byYear = toMode==='turnover' ? computeTurnover() : computeCollection();
+  const y = document.getElementById('to_year').value;
+  const months = byYear[y] || new Array(12).fill(0);
+  const total = months.reduce((a,b)=>a+b,0);
+  const max = Math.max(...months, 1);
+  const label = toMode==='turnover' ? 'ટર્નઓવર' : 'કલેક્શન';
+  const barColor = toMode==='turnover' ? 'linear-gradient(180deg,var(--gold),#8a6226)' : 'linear-gradient(180deg,var(--jama),#0f4a2c)';
+
+  const bars = months.map((v,i)=>{
+    const h = Math.max(Math.round((v/max)*120), v>0?4:0);
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="font-size:8.5px;color:var(--ink-soft);margin-bottom:2px;white-space:nowrap;">${v>0?fmtPlain(v):''}</div>
+      <div style="width:100%;max-width:20px;height:${h}px;background:${barColor};border-radius:3px 3px 0 0;"></div>
+      <div style="font-size:10px;color:var(--ink-soft);margin-top:4px;">${monShort[i]}</div>
+    </div>`;
+  }).join('');
+
+  const years = Object.keys(byYear).sort();
+  const yearRows = years.map(yy=>{
+    const t = byYear[yy].reduce((a,b)=>a+b,0);
+    return `<div style="display:flex;justify-content:space-between;padding:6px 2px;border-bottom:1px dashed var(--paper-line);font-size:13px;">
+      <span style="${yy===y?'font-weight:800;color:var(--cloth-dark);':''}">${yy}</span>
+      <span style="font-weight:700;">₹${fmtPlain(t)}</span>
+    </div>`;
+  }).join('');
+
+  const groupTable = toMode==='collection' ? renderGroupCollectionTable(y) + renderGroupYearlyCollectionTable() : '';
+
+  document.getElementById('to_results').innerHTML = `
+    <div style="text-align:center;margin:8px 0 14px;">
+      <div style="font-size:12px;color:var(--ink-soft);">${y} નું કુલ ${label}</div>
+      <div style="font-size:23px;font-weight:800;color:var(--cloth-dark);font-family:'Noto Serif Gujarati',serif;">₹${fmtPlain(total)}</div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:150px;border-bottom:2px solid var(--paper-line);padding:0 2px 4px;">
+      ${bars}
+    </div>
+    <div style="margin-top:16px;padding-top:10px;border-top:2px dashed var(--paper-line);">
+      <div style="font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:2px;">વર્ષ મુજબ ${label}</div>
+      ${yearRows}
+    </div>
+    ${groupTable}
+  `;
+}
+
+renderAll();
+</script>
+</body>
+</html>
