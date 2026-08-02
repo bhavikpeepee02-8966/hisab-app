@@ -645,6 +645,424 @@ const SEED_DATA = {"groups": {"Ravapar": {"parties": {"Jogmaiya Electric": {"ent
   }
   .mode-opt.sel{border-color:var(--gold);background:#FCF0D8;color:var(--ink);}
   .to-tab{
+    flex:1;padding:9px 4px;text-align:center;border-radius:9px;
+    border:2px solid var(--paper-line);font-weight:700;font-size:12px;
+    color:var(--ink-soft);background:var(--card);cursor:pointer;
+  }
+  .to-tab.sel{border-color:#7A4E1E;background:#F3E4C8;color:#7A4E1E;}
+  .sheet-actions{
+    display:flex;gap:10px;margin-top:16px;
+    position:sticky;bottom:0;background:var(--paper);
+    padding:12px 0 20px;
+  }
+  .btn{
+    flex:1;padding:13px;border-radius:10px;border:none;
+    font-weight:700;font-size:15px;
+  }
+  .btn.cancel{background:var(--card);border:1.5px solid var(--paper-line);color:var(--ink-soft);}
+  .btn.save{background:var(--cloth);color:#F3E4C8;}
+
+  .toast{
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#F6EEDD;padding:10px 18px;border-radius:20px;
+    font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:60;
+  }
+  .toast.show{opacity:1;}
+
+  /* Excel-style monthly matrix */
+  .mtable-wrap{overflow-x:auto;margin-top:10px;-webkit-overflow-scrolling:touch;}
+  table.mtable{border-collapse:collapse;font-size:12px;white-space:nowrap;min-width:100%;}
+  table.mtable th, table.mtable td{
+    border:1px solid var(--paper-line);padding:5px 7px;text-align:right;
+  }
+  table.mtable th{background:var(--cloth);color:#F3E4C8;font-weight:700;position:sticky;top:0;z-index:1;text-align:center;}
+  table.mtable td.sr, table.mtable th.sr{text-align:center;width:22px;padding:5px 4px;}
+  table.mtable td.pname, table.mtable th.pname{text-align:left;font-weight:600;position:sticky;left:0;background:var(--card);z-index:2;}
+  table.mtable th.pname{background:var(--cloth);z-index:3;}
+  table.mtable td.total, table.mtable th.total{
+    position:sticky;right:0;z-index:2;background:#FCF0D8;font-weight:800;
+    box-shadow:-2px 0 4px rgba(58,46,32,0.15);
+  }
+  table.mtable th.total{background:var(--cloth);color:#F3E4C8;z-index:3;box-shadow:none;}
+  table.mtable tr.grp-head td{
+    background:var(--gold);color:#3A2E20;font-weight:800;font-size:13px;text-align:left;
+    position:relative;
+  }
+  table.mtable tr.grp-total td.total{background:#F3DFA8;}
+  table.mtable tr.grp-total td{background:#FCF0D8;font-weight:800;}
+  table.mtable td.neg{color:var(--jama);}
+  table.mtable td.pos{color:var(--ukhad);}
+  table.mtable td.zero{color:var(--ink-soft);}
+  table.mtable td.cell-multi{vertical-align:top;padding:4px 6px;max-width:120px;}
+  table.mtable tr.sub-row td{border-top:none;padding-top:1px;padding-bottom:5px;}
+  .cl-line{white-space:nowrap;line-height:1.5;}
+  .cl-line.pos{color:var(--ukhad);font-weight:700;}
+  .cl-line.neg{color:var(--jama);}
+  .cl-line.cl-wrap{white-space:normal;font-size:11px;}
+  .cl-date{font-size:9px;color:var(--ink-soft);margin-left:2px;}
+</style>
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<body>
+
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="h-title">📖 હિસાબ ચોપડી</div>
+    <div class="h-gear" onclick="openBackup()">⚙️</div>
+  </div>
+  <div class="h-sub">ગ્રુપ મુજબ પાર્ટી હિસાબ</div>
+  <div class="grand-total">
+    <div><div class="lbl">કુલ બાકી (બધા ગ્રુપ)</div></div>
+    <div class="val" id="grandTotal">₹0</div>
+  </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<main>
+  <div style="display:flex;gap:6px;margin-bottom:12px;">
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;" onclick="openAddParty()">+ નવી પાર્ટી</button>
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;border-color:var(--jama);color:var(--jama);" onclick="openMonthAnalysis()">📊 મહિનાવાર</button>
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;border-color:#7A4E1E;color:#7A4E1E;" onclick="openTurnover()">📈 ટર્નઓવર</button>
+  </div>
+  <div class="group-total">
+    <div class="g-lbl" id="groupLabel">ગ્રુપ કુલ બાકી</div>
+    <div class="g-val" id="groupTotal">₹0</div>
+  </div>
+  <div id="partyList"></div>
+</main>
+
+<button class="fab" onclick="openAddEntry()">+</button>
+
+<!-- Add Entry Modal -->
+<div class="overlay" id="entryOverlay">
+  <div class="sheet">
+    <h3>નવો હિસાબ ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપ</label>
+      <select id="e_group"></select>
+    </div>
+    <div class="field">
+      <label>પાર્ટીનું નામ</label>
+      <select id="e_party"></select>
+    </div>
+    <div class="field">
+      <label>તારીખ</label>
+      <input type="date" id="e_date">
+    </div>
+    <div class="field">
+      <label>રકમ (₹)</label>
+      <input type="number" id="e_amount" inputmode="numeric" placeholder="0">
+    </div>
+    <div class="field">
+      <label>જમા કે ઉધાર?</label>
+      <div class="toggle-row">
+        <div class="toggle-opt jama" id="opt_jama" onclick="setType('jama')">જમા</div>
+        <div class="toggle-opt ukhad" id="opt_ukhad" onclick="setType('ukhad')">બાકી</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Payment Mode</label>
+      <div class="mode-row" id="modeRow">
+        <div class="mode-opt sel" data-m="રોકડ">રોકડ</div>
+        <div class="mode-opt" data-m="Google Pay">Google Pay</div>
+        <div class="mode-opt" data-m="બેંક">બેંક</div>
+        <div class="mode-opt" data-m="ચેક">ચેક</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Comment (વૈકલ્પિક)</label>
+      <input type="text" id="e_desc" placeholder="નોંધ લખો...">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('entryOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveEntry()">સેવ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Party Modal -->
+<div class="overlay" id="partyOverlay">
+  <div class="sheet">
+    <h3>નવી પાર્ટી ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપ</label>
+      <select id="np_group"></select>
+    </div>
+    <div class="field">
+      <label>પાર્ટીનું નામ</label>
+      <input type="text" id="np_name" placeholder="પાર્ટીનું નામ લખો">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('partyOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveParty()">ઉમેરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Group Modal -->
+<div class="overlay" id="groupOverlay">
+  <div class="sheet">
+    <h3>નવું ગ્રુપ ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપનું નામ</label>
+      <input type="text" id="ng_name" placeholder="દા.ત. નવો ટુર">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('groupOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveGroup()">ઉમેરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Month Analysis Modal -->
+<div class="overlay" id="monthOverlay">
+  <div class="sheet" style="max-width:96vw;">
+    <h3>મહિનાવાર હિસાબ (ગ્રુપ મુજબ)</h3>
+    <div id="ma_results"></div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('monthOverlay')">બંધ કરો</button>
+      <button class="btn save" onclick="exportMonthImage()">📸 ફોટો તરીકે સેવ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup / Restore Modal -->
+<div class="overlay" id="backupOverlay">
+  <div class="sheet">
+    <h3>બેકઅપ / રિસ્ટોર</h3>
+    <button class="add-party-btn" style="margin-bottom:10px;" onclick="downloadBackup()">⬇️ બેકઅપ ડાઉનલોડ કરો</button>
+    <label class="add-party-btn" style="display:block;text-align:center;border-color:var(--jama);color:var(--jama);cursor:pointer;">
+      ⬆️ બેકઅપ પાછું લાવો (Restore)
+      <input type="file" id="restoreFile" accept="application/json" style="display:none;" onchange="restoreBackup(event)">
+    </label>
+    <div style="font-size:11.5px;color:var(--ink-soft);margin-top:12px;line-height:1.6;">
+      બેકઅપ ફાઇલ WhatsApp, Google Drive કે Email માં સેવ કરી રાખો — ફોન બદલો કે ડિલિટ થાય તોય ડેટા પાછો લાવી શકાશે. ✔ Restore કરવાથી હાલનો બધો ડેટા બદલાઈ જશે, એટલે જૂનું બેકઅપ સાચવીને જ Restore કરવું.
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('backupOverlay')">બંધ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Turnover Modal -->
+<div class="overlay" id="turnoverOverlay">
+  <div class="sheet">
+    <h3>ટર્નઓવર / કલેક્શન</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div class="to-tab sel" id="to_tab_turnover" onclick="switchToTab('turnover')">📈 ટર્નઓવર</div>
+      <div class="to-tab" id="to_tab_collection" onclick="switchToTab('collection')">💰 કલેક્શન</div>
+      <div class="to-tab" id="to_tab_compare" onclick="switchToTab('compare')">📊 સરખામણી</div>
+    </div>
+    <div class="field">
+      <label>વર્ષ</label>
+      <select id="to_year" onchange="renderTurnover()"></select>
+    </div>
+    <div id="to_results"></div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('turnoverOverlay')">બંધ કરો</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'hisab_chopdi_data_v1';
+const SEED_FLAG = 'hisab_seed_imported_v2';
+const SEED_DATA = {"groups": {"Ravapar": {"parties": {"Jogmaiya Electric": {"entries": [{"id": "e_imp4mie9", "date": "2024-07-29", "amount": 7642.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp99xwc", "date": "2024-08-16", "amount": 1025.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1565p3", "date": "2024-09-03", "amount": 3615.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp24wmpp", "date": "2024-09-30", "amount": 5000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp259sju", "date": "2024-09-30", "amount": 330.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp26ot4u", "date": "2024-09-30", "amount": 10456.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp61bf4e", "date": "2024-11-29", "amount": 3753.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp64u4dz", "date": "2024-11-30", "amount": 9401.0, "type": "jama", "desc": "3615+10415+330-5000", "mode": "રોકડ"}, {"id": "e_imp1036eyf", "date": "2025-01-22", "amount": 1025.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp118m27x", "date": "2025-02-15", "amount": 7642.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp119nomz", "date": "2025-02-15", "amount": 9710.0, "type": "ukhad", "desc": "48\" Daril -8", "mode": "રોકડ"}, {"id": "e_imp1368mif", "date": "2025-03-11", "amount": 3753.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp137u1sv", "date": "2025-03-12", "amount": 7377.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1824hlt", "date": "2025-04-27", "amount": 9710.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp217n3ax", "date": "2025-05-29", "amount": 7377.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp333avrw", "date": "2025-09-12", "amount": 1379.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp334654h", "date": "2025-09-12", "amount": 5861.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp337w6qj", "date": "2025-09-18", "amount": 2135.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp369s2a6", "date": "2025-10-11", "amount": 2500.0, "type": "jama", "desc": "Rubaru Pete", "mode": "રોકડ"}, {"id": "e_imp395sv9p", "date": "2025-11-11", "amount": 4740.0, "type": "jama", "desc": "Rubaru Google pay 1379+5861-2500", "mode": "Google Pay"}, {"id": "e_imp4345r3c", "date": "2025-12-11", "amount": 2135.0, "type": "jama", "desc": "Rubaru GPay", "mode": "Google Pay"}, {"id": "e_imp471zk1s", "date": "2026-01-30", "amount": 6321.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4728t51", "date": "2026-01-30", "amount": 7048.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp497qjv7", "date": "2026-02-23", "amount": 7400.0, "type": "jama", "desc": "Cash Pete Rubaru", "mode": "રોકડ"}, {"id": "e_imp5025959", "date": "2026-02-25", "amount": 11550.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp522jtxp", "date": "2026-03-24", "amo    color:var(--ink);
+    min-height:100vh;
+    padding-bottom:90px;
+  }
+
+  /* Header — cloth-bound ledger spine */
+  header{
+    background:linear-gradient(180deg,var(--cloth) 0%,var(--cloth-dark) 100%);
+    color:#F3E4C8;
+    padding:12px 16px 14px;
+    position:relative;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+  }
+  header::after{
+    content:"";
+    position:absolute;left:0;right:0;bottom:-6px;height:6px;
+    background:repeating-linear-gradient(90deg,var(--gold) 0 14px, transparent 14px 28px);
+    opacity:.55;
+  }
+  .h-title{
+    font-family:'Noto Serif Gujarati',serif;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:.5px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .h-gear{font-size:18px;cursor:pointer;opacity:.85;}
+  .h-sub{font-size:10.5px;opacity:.7;margin-top:2px;}
+  .grand-total{
+    margin-top:8px;
+    display:flex;justify-content:space-between;align-items:baseline;
+    background:rgba(0,0,0,0.18);
+    border-radius:9px;padding:6px 12px;
+  }
+  .grand-total .lbl{font-size:11px;opacity:.8;}
+  .grand-total .val{font-family:'Noto Serif Gujarati',serif;font-size:17px;font-weight:700;}
+
+  /* Group tabs */
+  .tabs{
+    display:flex;gap:8px;padding:10px 14px 4px;overflow-x:auto;
+  }
+  .tab{
+    flex:0 0 auto;
+    padding:9px 16px;
+    border-radius:20px;
+    background:var(--card);
+    border:1.5px solid var(--paper-line);
+    font-weight:600;font-size:14.5px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+    box-shadow:var(--shadow);
+  }
+  .tab.active{
+    background:var(--cloth);
+    color:#F3E4C8;
+    border-color:var(--cloth-dark);
+  }
+  .tab.add-tab{
+    color:var(--gold);border-style:dashed;font-weight:700;
+  }
+
+  main{padding:14px;}
+
+  .group-total{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 4px 14px;
+    border-bottom:2px dashed var(--paper-line);
+    margin-bottom:12px;
+  }
+  .group-total .g-lbl{font-size:13px;color:var(--ink-soft);}
+  .group-total .g-val{font-family:'Noto Serif Gujarati',serif;font-weight:700;font-size:19px;}
+
+  /* Party card */
+  .party-card{
+    background:var(--card);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    margin-bottom:10px;
+    overflow:hidden;
+    border-left:5px solid var(--gold);
+  }
+  .party-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:13px 14px;
+    cursor:pointer;
+  }
+  .p-name{font-weight:700;font-size:16px;}
+  .p-icon{font-size:13px;margin-left:8px;opacity:0.65;cursor:pointer;}
+  .p-icon:active{opacity:1;}
+  .p-count{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .p-bal{font-family:'Noto Serif Gujarati',serif;font-weight:700;font-size:17px;text-align:right;}
+  .p-bal.owe{color:var(--ukhad);}
+  .p-bal.recv{color:var(--jama);}
+  .p-bal.zero{color:var(--ink-soft);}
+  .p-bal small{display:block;font-family:'Noto Sans Gujarati',sans-serif;font-weight:600;font-size:10.5px;}
+
+  .entries{
+    display:none;
+    border-top:1px dashed var(--paper-line);
+    padding:6px 14px 12px;
+  }
+  .entries.open{display:block;}
+  .entry-row{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:9px 0;
+    border-bottom:1px solid var(--paper-line);
+    gap:8px;
+  }
+  .entry-row:last-child{border-bottom:none;}
+  .e-left .e-date{font-size:11px;color:var(--ink-soft);}
+  .e-left .e-desc{font-size:13.5px;margin-top:1px;}
+  .e-left .e-mode{font-size:10.5px;color:var(--gold);margin-top:1px;font-weight:600;}
+  .e-left .e-time{font-size:10.5px;color:var(--ink-soft);margin-top:1px;font-style:italic;}
+  .e-right{text-align:right;white-space:nowrap;}
+  .e-amt{font-weight:700;font-size:14.5px;}
+  .e-amt.jama{color:var(--jama);}
+  .e-amt.ukhad{color:var(--ukhad);}
+  .e-tag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;display:inline-block;margin-bottom:2px;}
+  .e-tag.jama{background:var(--jama-bg);color:var(--jama);}
+  .e-tag.ukhad{background:var(--ukhad-bg);color:var(--ukhad);}
+  .e-del{color:#B0A28A;font-size:16px;margin-left:6px;cursor:pointer;}
+
+  .party-actions{
+    display:flex;gap:8px;padding:10px 14px 12px;
+    border-top:1px dashed var(--paper-line);
+  }
+  .mini-btn{
+    flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--paper-line);
+    background:var(--paper);font-size:12.5px;font-weight:600;color:var(--ink);
+    text-align:center;
+  }
+  .mini-btn.share{color:#1F6E43;border-color:#1F6E43;}
+
+  .empty{
+    text-align:center;color:var(--ink-soft);padding:40px 20px;font-size:14px;
+  }
+
+  /* Add party button */
+  .add-party-btn{
+    width:100%;padding:13px;border-radius:12px;
+    background:var(--card);border:2px dashed var(--gold);
+    color:var(--gold);font-weight:700;font-size:14.5px;
+    margin-top:6px;
+  }
+
+  /* FAB */
+  .fab{
+    position:fixed;right:18px;bottom:18px;
+    width:58px;height:58px;border-radius:50%;
+    background:var(--cloth);color:#F3E4C8;
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;box-shadow:0 4px 14px rgba(0,0,0,0.3);
+    border:none;
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.45);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--paper);width:100%;max-width:480px;
+    border-radius:18px 18px 0 0;padding:20px 18px 0;
+    max-height:88vh;overflow-y:auto;
+    box-shadow:0 -4px 20px rgba(0,0,0,0.3);
+  }
+  .sheet h3{
+    font-family:'Noto Serif Gujarati',serif;margin:0 0 14px;font-size:19px;color:var(--cloth-dark);
+  }
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:600;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:11px 12px;border-radius:9px;
+    border:1.5px solid var(--paper-line);background:var(--card);
+    font-family:inherit;font-size:15px;color:var(--ink);
+  }
+  .field textarea{resize:none;height:44px;}
+  .toggle-row{display:flex;gap:10px;}
+  .toggle-opt{
+    flex:1;padding:11px;text-align:center;border-radius:9px;
+    border:2px solid var(--paper-line);font-weight:700;font-size:14px;
+    color:var(--ink-soft);background:var(--card);
+  }
+  .toggle-opt.sel.jama{border-color:var(--jama);background:var(--jama-bg);color:var(--jama);}
+  .toggle-opt.sel.ukhad{border-color:var(--ukhad);background:var(--ukhad-bg);color:var(--ukhad);}
+  .mode-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .mode-opt{
+    padding:8px 14px;border-radius:16px;border:1.5px solid var(--paper-line);
+    font-size:13px;font-weight:600;color:var(--ink-soft);background:var(--card);
+  }
+  .mode-opt.sel{border-color:var(--gold);background:#FCF0D8;color:var(--ink);}
+  .to-tab{
     flex:1;padding:10px;text-align:center;border-radius:9px;
     border:2px solid var(--paper-line);font-weight:700;font-size:13.5px;
     color:var(--ink-soft);background:var(--card);cursor:pointer;
