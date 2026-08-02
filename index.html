@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#7A1E22">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>હિસાબ ચોપડી</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700;800&family=Noto+Serif+Gujarati:wght@600;700&display=swap');
+
+  :root{
+    --paper:#F6EEDD;
+    --paper-line:#E3D3AC;
+    --ink:#3A2E20;
+    --ink-soft:#7A6A50;
+    --cloth:#7A1E22;
+    --cloth-dark:#5C1418;
+    --gold:#B8863B;
+    --jama:#1F6E43;
+    --jama-bg:#E4F1E7;
+    --ukhad:#A02A2A;
+    --ukhad-bg:#FBE7E4;
+    --card:#FFFDF7;
+    --shadow:0 2px 8px rgba(58,46,32,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Noto Sans Gujarat','Noto Sans Gujarati',sans-serif;
+    background:
+      repeating-linear-gradient(var(--paper) 0px, var(--paper) 34px, var(--paper-line) 35px),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    padding-bottom:90px;
+  }
+
+  /* Header — cloth-bound ledger spine */
+  header{
+    background:linear-gradient(180deg,var(--cloth) 0%,var(--cloth-dark) 100%);
+    color:#F3E4C8;
+    padding:12px 16px 14px;
+    position:relative;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+  }
+  header::after{
+    content:"";
+    position:absolute;left:0;right:0;bottom:-6px;height:6px;
+    background:repeating-linear-gradient(90deg,var(--gold) 0 14px, transparent 14px 28px);
+    opacity:.55;
+  }
+  .h-title{
+    font-family:'Noto Serif Gujarati',serif;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:.5px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .h-gear{font-size:18px;cursor:pointer;opacity:.85;}
+  .h-sub{font-size:10.5px;opacity:.7;margin-top:2px;}
+  .grand-total{
+    margin-top:8px;
+    display:flex;justify-content:space-between;align-items:baseline;
+    background:rgba(0,0,0,0.18);
+    border-radius:9px;padding:6px 12px;
+  }
+  .grand-total .lbl{font-size:11px;opacity:.8;}
+  .grand-total .val{font-family:'Noto Serif Gujarati',serif;font-size:17px;font-weight:700;}
+
+  /* Group tabs */
+  .tabs{
+    display:flex;gap:8px;padding:10px 14px 4px;overflow-x:auto;
+  }
+  .tab{
+    flex:0 0 auto;
+    padding:9px 16px;
+    border-radius:20px;
+    background:var(--card);
+    border:1.5px solid var(--paper-line);
+    font-weight:600;font-size:14.5px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+    box-shadow:var(--shadow);
+  }
+  .tab.active{
+    background:var(--cloth);
+    color:#F3E4C8;
+    border-color:var(--cloth-dark);
+  }
+  .tab.add-tab{
+    color:var(--gold);border-style:dashed;font-weight:700;
+  }
+
+  main{padding:14px;}
+
+  .group-total{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 4px 14px;
+    border-bottom:2px dashed var(--paper-line);
+    margin-bottom:12px;
+  }
+  .group-total .g-lbl{font-size:13px;color:var(--ink-soft);}
+  .group-total .g-val{font-family:'Noto Serif Gujarati',serif;font-weight:700;font-size:19px;}
+
+  /* Party card */
+  .party-card{
+    background:var(--card);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+    margin-bottom:10px;
+    overflow:hidden;
+    border-left:5px solid var(--gold);
+  }
+  .party-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:13px 14px;
+    cursor:pointer;
+  }
+  .p-name{font-weight:700;font-size:16px;}
+  .p-icon{font-size:13px;margin-left:8px;opacity:0.65;cursor:pointer;}
+  .p-icon:active{opacity:1;}
+  .p-count{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .p-bal{font-family:'Noto Serif Gujarati',serif;font-weight:700;font-size:17px;text-align:right;}
+  .p-bal.owe{color:var(--ukhad);}
+  .p-bal.recv{color:var(--jama);}
+  .p-bal.zero{color:var(--ink-soft);}
+  .p-bal small{display:block;font-family:'Noto Sans Gujarati',sans-serif;font-weight:600;font-size:10.5px;}
+
+  .entries{
+    display:none;
+    border-top:1px dashed var(--paper-line);
+    padding:6px 14px 12px;
+  }
+  .entries.open{display:block;}
+  .entry-row{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    padding:9px 0;
+    border-bottom:1px solid var(--paper-line);
+    gap:8px;
+  }
+  .entry-row:last-child{border-bottom:none;}
+  .e-left .e-date{font-size:11px;color:var(--ink-soft);}
+  .e-left .e-desc{font-size:13.5px;margin-top:1px;}
+  .e-left .e-mode{font-size:10.5px;color:var(--gold);margin-top:1px;font-weight:600;}
+  .e-left .e-time{font-size:10.5px;color:var(--ink-soft);margin-top:1px;font-style:italic;}
+  .e-right{text-align:right;white-space:nowrap;}
+  .e-amt{font-weight:700;font-size:14.5px;}
+  .e-amt.jama{color:var(--jama);}
+  .e-amt.ukhad{color:var(--ukhad);}
+  .e-tag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;display:inline-block;margin-bottom:2px;}
+  .e-tag.jama{background:var(--jama-bg);color:var(--jama);}
+  .e-tag.ukhad{background:var(--ukhad-bg);color:var(--ukhad);}
+  .e-del{color:#B0A28A;font-size:16px;margin-left:6px;cursor:pointer;}
+
+  .party-actions{
+    display:flex;gap:8px;padding:10px 14px 12px;
+    border-top:1px dashed var(--paper-line);
+  }
+  .mini-btn{
+    flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--paper-line);
+    background:var(--paper);font-size:12.5px;font-weight:600;color:var(--ink);
+    text-align:center;
+  }
+  .mini-btn.share{color:#1F6E43;border-color:#1F6E43;}
+
+  .empty{
+    text-align:center;color:var(--ink-soft);padding:40px 20px;font-size:14px;
+  }
+
+  /* Add party button */
+  .add-party-btn{
+    width:100%;padding:13px;border-radius:12px;
+    background:var(--card);border:2px dashed var(--gold);
+    color:var(--gold);font-weight:700;font-size:14.5px;
+    margin-top:6px;
+  }
+
+  /* FAB */
+  .fab{
+    position:fixed;right:18px;bottom:18px;
+    width:58px;height:58px;border-radius:50%;
+    background:var(--cloth);color:#F3E4C8;
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;box-shadow:0 4px 14px rgba(0,0,0,0.3);
+    border:none;
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.45);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--paper);width:100%;max-width:480px;
+    border-radius:18px 18px 0 0;padding:20px 18px 0;
+    max-height:88vh;overflow-y:auto;
+    box-shadow:0 -4px 20px rgba(0,0,0,0.3);
+  }
+  .sheet h3{
+    font-family:'Noto Serif Gujarati',serif;margin:0 0 14px;font-size:19px;color:var(--cloth-dark);
+  }
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:600;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:11px 12px;border-radius:9px;
+    border:1.5px solid var(--paper-line);background:var(--card);
+    font-family:inherit;font-size:15px;color:var(--ink);
+  }
+  .field textarea{resize:none;height:44px;}
+  .toggle-row{display:flex;gap:10px;}
+  .toggle-opt{
+    flex:1;padding:11px;text-align:center;border-radius:9px;
+    border:2px solid var(--paper-line);font-weight:700;font-size:14px;
+    color:var(--ink-soft);background:var(--card);
+  }
+  .toggle-opt.sel.jama{border-color:var(--jama);background:var(--jama-bg);color:var(--jama);}
+  .toggle-opt.sel.ukhad{border-color:var(--ukhad);background:var(--ukhad-bg);color:var(--ukhad);}
+  .mode-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .mode-opt{
+    padding:8px 14px;border-radius:16px;border:1.5px solid var(--paper-line);
+    font-size:13px;font-weight:600;color:var(--ink-soft);background:var(--card);
+  }
+  .mode-opt.sel{border-color:var(--gold);background:#FCF0D8;color:var(--ink);}
+  .to-tab{
+    flex:1;padding:9px 4px;text-align:center;border-radius:9px;
+    border:2px solid var(--paper-line);font-weight:700;font-size:12px;
+    color:var(--ink-soft);background:var(--card);cursor:pointer;
+  }
+  .to-tab.sel{border-color:#7A4E1E;background:#F3E4C8;color:#7A4E1E;}
+  .sheet-actions{
+    display:flex;gap:10px;margin-top:16px;
+    position:sticky;bottom:0;background:var(--paper);
+    padding:12px 0 20px;
+  }
+  .btn{
+    flex:1;padding:13px;border-radius:10px;border:none;
+    font-weight:700;font-size:15px;
+  }
+  .btn.cancel{background:var(--card);border:1.5px solid var(--paper-line);color:var(--ink-soft);}
+  .btn.save{background:var(--cloth);color:#F3E4C8;}
+
+  .toast{
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#F6EEDD;padding:10px 18px;border-radius:20px;
+    font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:60;
+  }
+  .toast.show{opacity:1;}
+
+  /* Excel-style monthly matrix */
+  .mtable-wrap{overflow-x:auto;margin-top:10px;-webkit-overflow-scrolling:touch;}
+  table.mtable{border-collapse:collapse;font-size:12px;white-space:nowrap;min-width:100%;}
+  table.mtable th, table.mtable td{
+    border:1px solid var(--paper-line);padding:5px 7px;text-align:right;
+  }
+  table.mtable th{background:var(--cloth);color:#F3E4C8;font-weight:700;position:sticky;top:0;z-index:1;text-align:center;}
+  table.mtable td.sr, table.mtable th.sr{text-align:center;width:22px;padding:5px 4px;}
+  table.mtable td.pname, table.mtable th.pname{text-align:left;font-weight:600;position:sticky;left:0;background:var(--card);z-index:2;}
+  table.mtable th.pname{background:var(--cloth);z-index:3;}
+  table.mtable td.total, table.mtable th.total{
+    position:sticky;right:0;z-index:2;background:#FCF0D8;font-weight:800;
+    box-shadow:-2px 0 4px rgba(58,46,32,0.15);
+  }
+  table.mtable th.total{background:var(--cloth);color:#F3E4C8;z-index:3;box-shadow:none;}
+  table.mtable tr.grp-head td{
+    background:var(--gold);color:#3A2E20;font-weight:800;font-size:13px;text-align:left;
+    position:relative;
+  }
+  table.mtable tr.grp-total td.total{background:#F3DFA8;}
+  table.mtable tr.grp-total td{background:#FCF0D8;font-weight:800;}
+  table.mtable td.neg{color:var(--jama);}
+  table.mtable td.pos{color:var(--ukhad);}
+  table.mtable td.zero{color:var(--ink-soft);}
+  table.mtable td.cell-multi{vertical-align:top;padding:4px 6px;max-width:120px;}
+  table.mtable tr.sub-row td{border-top:none;padding-top:1px;padding-bottom:5px;}
+  .cl-line{white-space:nowrap;line-height:1.5;}
+  .cl-line.pos{color:var(--ukhad);font-weight:700;}
+  .cl-line.neg{color:var(--jama);}
+  .cl-line.cl-wrap{white-space:normal;font-size:11px;}
+  .cl-date{font-size:9px;color:var(--ink-soft);margin-left:2px;}
+</style>
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<body>
+
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="h-title">📖 હિસાબ ચોપડી</div>
+    <div class="h-gear" onclick="openBackup()">⚙️</div>
+  </div>
+  <div class="h-sub">ગ્રુપ મુજબ પાર્ટી હિસાબ</div>
+  <div class="grand-total">
+    <div><div class="lbl">કુલ બાકી (બધા ગ્રુપ)</div></div>
+    <div class="val" id="grandTotal">₹0</div>
+  </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<main>
+  <div style="display:flex;gap:6px;margin-bottom:12px;">
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;" onclick="openAddParty()">+ નવી પાર્ટી</button>
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;border-color:var(--jama);color:var(--jama);" onclick="openMonthAnalysis()">📊 મહિનાવાર</button>
+    <button class="add-party-btn" style="margin:0;flex:1;padding:10px 4px;font-size:11.5px;border-color:#7A4E1E;color:#7A4E1E;" onclick="openTurnover()">📈 ટર્નઓવર</button>
+  </div>
+  <div class="group-total">
+    <div class="g-lbl" id="groupLabel">ગ્રુપ કુલ બાકી</div>
+    <div class="g-val" id="groupTotal">₹0</div>
+  </div>
+  <div id="partyList"></div>
+</main>
+
+<button class="fab" onclick="openAddEntry()">+</button>
+
+<!-- Add Entry Modal -->
+<div class="overlay" id="entryOverlay">
+  <div class="sheet">
+    <h3>નવો હિસાબ ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપ</label>
+      <select id="e_group"></select>
+    </div>
+    <div class="field">
+      <label>પાર્ટીનું નામ</label>
+      <select id="e_party"></select>
+    </div>
+    <div class="field">
+      <label>તારીખ</label>
+      <input type="date" id="e_date">
+    </div>
+    <div class="field">
+      <label>રકમ (₹)</label>
+      <input type="number" id="e_amount" inputmode="numeric" placeholder="0">
+    </div>
+    <div class="field">
+      <label>જમા કે ઉધાર?</label>
+      <div class="toggle-row">
+        <div class="toggle-opt jama" id="opt_jama" onclick="setType('jama')">જમા</div>
+        <div class="toggle-opt ukhad" id="opt_ukhad" onclick="setType('ukhad')">બાકી</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Payment Mode</label>
+      <div class="mode-row" id="modeRow">
+        <div class="mode-opt sel" data-m="રોકડ">રોકડ</div>
+        <div class="mode-opt" data-m="Google Pay">Google Pay</div>
+        <div class="mode-opt" data-m="બેંક">બેંક</div>
+        <div class="mode-opt" data-m="ચેક">ચેક</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Comment (વૈકલ્પિક)</label>
+      <input type="text" id="e_desc" placeholder="નોંધ લખો...">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('entryOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveEntry()">સેવ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Party Modal -->
+<div class="overlay" id="partyOverlay">
+  <div class="sheet">
+    <h3>નવી પાર્ટી ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપ</label>
+      <select id="np_group"></select>
+    </div>
+    <div class="field">
+      <label>પાર્ટીનું નામ</label>
+      <input type="text" id="np_name" placeholder="પાર્ટીનું નામ લખો">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('partyOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveParty()">ઉમેરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Group Modal -->
+<div class="overlay" id="groupOverlay">
+  <div class="sheet">
+    <h3>નવું ગ્રુપ ઉમેરો</h3>
+    <div class="field">
+      <label>ગ્રુપનું નામ</label>
+      <input type="text" id="ng_name" placeholder="દા.ત. નવો ટુર">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('groupOverlay')">રદ કરો</button>
+      <button class="btn save" onclick="saveGroup()">ઉમેરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Month Analysis Modal -->
+<div class="overlay" id="monthOverlay">
+  <div class="sheet" style="max-width:96vw;">
+    <h3>મહિનાવાર હિસાબ (ગ્રુપ મુજબ)</h3>
+    <div id="ma_results"></div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('monthOverlay')">બંધ કરો</button>
+      <button class="btn save" onclick="exportMonthImage()">📸 ફોટો તરીકે સેવ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup / Restore Modal -->
+<div class="overlay" id="backupOverlay">
+  <div class="sheet">
+    <h3>બેકઅપ / રિસ્ટોર</h3>
+    <button class="add-party-btn" style="margin-bottom:10px;" onclick="downloadBackup()">⬇️ બેકઅપ ડાઉનલોડ કરો</button>
+    <label class="add-party-btn" style="display:block;text-align:center;border-color:var(--jama);color:var(--jama);cursor:pointer;">
+      ⬆️ બેકઅપ પાછું લાવો (Restore)
+      <input type="file" id="restoreFile" accept="application/json" style="display:none;" onchange="restoreBackup(event)">
+    </label>
+    <div style="font-size:11.5px;color:var(--ink-soft);margin-top:12px;line-height:1.6;">
+      બેકઅપ ફાઇલ WhatsApp, Google Drive કે Email માં સેવ કરી રાખો — ફોન બદલો કે ડિલિટ થાય તોય ડેટા પાછો લાવી શકાશે. ✔ Restore કરવાથી હાલનો બધો ડેટા બદલાઈ જશે, એટલે જૂનું બેકઅપ સાચવીને જ Restore કરવું.
+    </div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('backupOverlay')">બંધ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Turnover Modal -->
+<div class="overlay" id="turnoverOverlay">
+  <div class="sheet">
+    <h3>ટર્નઓવર / કલેક્શન</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div class="to-tab sel" id="to_tab_turnover" onclick="switchToTab('turnover')">📈 ટર્નઓવર</div>
+      <div class="to-tab" id="to_tab_collection" onclick="switchToTab('collection')">💰 કલેક્શન</div>
+      <div class="to-tab" id="to_tab_compare" onclick="switchToTab('compare')">📊 સરખામણી</div>
+    </div>
+    <div class="field">
+      <label>વર્ષ</label>
+      <select id="to_year" onchange="renderTurnover()"></select>
+    </div>
+    <div id="to_results"></div>
+    <div class="sheet-actions">
+      <button class="btn cancel" onclick="closeOverlay('turnoverOverlay')">બંધ કરો</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'hisab_chopdi_data_v1';
+const SEED_FLAG = 'hisab_seed_imported_v2';
+const SEED_DATA = {"groups": {"Ravapar": {"parties": {"Jogmaiya Electric": {"entries": [{"id": "e_imp4mie9", "date": "2024-07-29", "amount": 7642.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp99xwc", "date": "2024-08-16", "amount": 1025.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1565p3", "date": "2024-09-03", "amount": 3615.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp24wmpp", "date": "2024-09-30", "amount": 5000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp259sju", "date": "2024-09-30", "amount": 330.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp26ot4u", "date": "2024-09-30", "amount": 10456.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp61bf4e", "date": "2024-11-29", "amount": 3753.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp64u4dz", "date": "2024-11-30", "amount": 9401.0, "type": "jama", "desc": "3615+10415+330-5000", "mode": "રોકડ"}, {"id": "e_imp1036eyf", "date": "2025-01-22", "amount": 1025.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp118m27x", "date": "2025-02-15", "amount": 7642.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp119nomz", "date": "2025-02-15", "amount": 9710.0, "type": "ukhad", "desc": "48\" Daril -8", "mode": "રોકડ"}, {"id": "e_imp1368mif", "date": "2025-03-11", "amount": 3753.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp137u1sv", "date": "2025-03-12", "amount": 7377.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1824hlt", "date": "2025-04-27", "amount": 9710.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp217n3ax", "date": "2025-05-29", "amount": 7377.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp333avrw", "date": "2025-09-12", "amount": 1379.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp334654h", "date": "2025-09-12", "amount": 5861.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp337w6qj", "date": "2025-09-18", "amount": 2135.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp369s2a6", "date": "2025-10-11", "amount": 2500.0, "type": "jama", "desc": "Rubaru Pete", "mode": "રોકડ"}, {"id": "e_imp395sv9p", "date": "2025-11-11", "amount": 4740.0, "type": "jama", "desc": "Rubaru Google pay 1379+5861-2500", "mode": "Google Pay"}, {"id": "e_imp4345r3c", "date": "2025-12-11", "amount": 2135.0, "type": "jama", "desc": "Rubaru GPay", "mode": "Google Pay"}, {"id": "e_imp471zk1s", "date": "2026-01-30", "amount": 6321.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4728t51", "date": "2026-01-30", "amount": 7048.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp497qjv7", "date": "2026-02-23", "amount": 7400.0, "type": "jama", "desc": "Cash Pete Rubaru", "mode": "રોકડ"}, {"id": "e_imp5025959", "date": "2026-02-25", "amount": 11550.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp522jtxp", "date": "2026-03-24", "amount": 6500.0, "type": "jama", "desc": "cash pete", "mode": "રોકડ"}, {"id": "e_imp560vnsz", "date": "2026-04-30", "amount": 2580.0, "type": "jama", "desc": "Mal jama 24 fan deril 2", "mode": "માલ જમા"}, {"id": "e_imp5611jx0", "date": "2026-04-30", "amount": 8440.0, "type": "jama", "desc": "6321+7048+11550-7400-6500-2580", "mode": "રોકડ"}, {"id": "e_imp562gx61", "date": "2026-04-30", "amount": 1.0, "type": "ukhad", "desc": "vadhu", "mode": "વધુ +"}, {"id": "e_imp5687yr8", "date": "2026-05-11", "amount": 3586.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp584qk8p", "date": "2026-05-30", "amount": 5300.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp585ig2z", "date": "2026-05-30", "amount": 5000.0, "type": "jama", "desc": "pete", "mode": "રોકડ"}, {"id": "e_imp594wvha", "date": "2026-06-01", "amount": 1985.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp616a2ie", "date": "2026-07-11", "amount": 3886.0, "type": "jama", "desc": "3586+5300-5000(6 kasar)", "mode": "કસર −"}, {"id": "e_imp62002mq", "date": "2026-07-14", "amount": 9755.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp6216qw1", "date": "2026-07-14", "amount": 11490.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Tabsum": {"entries": [{"id": "e_imp5l2fm", "date": "2024-07-31", "amount": 5215.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp14x677", "date": "2024-09-03", "amount": 2890.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp2059pg", "date": "2024-09-12", "amount": 5215.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp218m72", "date": "2024-09-14", "amount": 2525.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp22j2g6", "date": "2024-09-30", "amount": 6860.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp23mfqs", "date": "2024-09-30", "amount": 1235.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp402nfd", "date": "2024-10-16", "amount": 6703.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp52rm6c", "date": "2024-11-08", "amount": 4230.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp63vefp", "date": "2024-11-30", "amount": 13320.0, "type": "jama", "desc": "5215+2890+5215", "mode": "રોકડ"}, {"id": "e_imp67b1g4", "date": "2024-12-03", "amount": 3685.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp783bpi", "date": "2024-12-13", "amount": 3840.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp85wzvs", "date": "2024-12-31", "amount": 10620.0, "type": "jama", "desc": "Google Pay. 2525+6860+1235", "mode": "Google Pay"}, {"id": "e_imp106dzmb", "date": "2025-01-28", "amount": 10895.0, "type": "ukhad", "desc": "48\" - 4 Daril", "mode": "રોકડ"}, {"id": "e_imp115f69u", "date": "2025-02-09", "amount": 10933.0, "type": "jama", "desc": "Google pay 6703+4230", "mode": "Google Pay"}, {"id": "e_imp1321ny8", "date": "2025-03-08", "amount": 7450.0, "type": "ukhad", "desc": "48\"Daril,l-4, 24\"Daril-2", "mode": "રોકડ"}, {"id": "e_imp141ezlj", "date": "2025-03-15", "amount": 7525.0, "type": "jama", "desc": "Google pay 3685+3840", "mode": "Google Pay"}, {"id": "e_imp145tfug", "date": "2025-03-17", "amount": 10430.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp150zf3l", "date": "2025-03-27", "amount": 13435.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp151m2v4", "date": "2025-03-28", "amount": 2275.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp16952ap", "date": "2025-04-12", "amount": 3765.0, "type": "ukhad", "desc": "Daril 24\" - 3", "mode": "રોકડ"}, {"id": "e_imp18345u3", "date": "2025-04-28", "amount": 10430.0, "type": "ukhad", "desc": "48\" Daril-4, 48\"Wit-4", "mode": "રોકડ"}, {"id": "e_imp1954onh", "date": "2025-05-06", "amount": 20000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp197t451", "date": "2025-05-08", "amount": 10030.0, "type": "ukhad", "desc": "Deril 8", "mode": "રોકડ"}, {"id": "e_imp198he68", "date": "2025-05-08", "amount": 5215.0, "type": "ukhad", "desc": "24 deril 2, 48 wit 2", "mode": "રોકડ"}, {"id": "e_imp211i1bz", "date": "2025-05-16", "amount": 5015.0, "type": "ukhad", "desc": "48 Deril -4", "mode": "રોકડ"}, {"id": "e_imp219tpdx", "date": "2025-06-02", "amount": 1000.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp220ulx2", "date": "2025-06-04", "amount": 3765.0, "type": "ukhad", "desc": "24\" Deril-3", "mode": "રોકડ"}, {"id": "e_imp233not6", "date": "2025-06-09", "amount": 24485.0, "type": "jama", "desc": "GP 10895+7450+10430+13435+2275", "mode": "Google Pay"}, {"id": "e_imp2347atc", "date": "2025-06-09", "amount": 5015.0, "type": "ukhad", "desc": "48\" Deril-4", "mode": "રોકડ"}, {"id": "e_imp252g6xl", "date": "2025-06-25", "amount": 7515.0, "type": "ukhad", "desc": "24\" Deril-4, 48\" Deril-2", "mode": "રોકડ"}, {"id": "e_imp26551fr", "date": "2025-07-03", "amount": 24220.0, "type": "jama", "desc": "3765+10430+10030 cash", "mode": "રોકડ"}, {"id": "e_imp266gnfs", "date": "2025-07-03", "amount": 5.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp270hlos", "date": "2025-07-05", "amount": 6715.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp2856jkl", "date": "2025-07-29", "amount": 2206.0, "type": "ukhad", "desc": "ભુજ વાળા ભાઈ", "mode": "રોકડ"}, {"id": "e_imp295g6jo", "date": "2025-08-11", "amount": 7700.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp3096dy7", "date": "2025-08-21", "amount": 2120.0, "type": "jama", "desc": "Cash ભુજ વાળા ભાઈ 2206-78 માલ જમાં - 8 કસર", "mode": "કસર −"}, {"id": "e_imp3101nsb", "date": "2025-08-21", "amount": 78.0, "type": "jama", "desc": "ભુજ વાળા ભાઈ માલ જમાં", "mode": "માલ જમા"}, {"id": "e_imp311j0nx", "date": "2025-08-21", "amount": 8.0, "type": "jama", "desc": "કસર ભુજ વાળા ભાઈ", "mode": "કસર −"}, {"id": "e_imp320gkfe", "date": "2025-09-03", "amount": 14995.0, "type": "jama", "desc": "Google pay 5215+5015+1000+3765", "mode": "Google Pay"}, {"id": "e_imp33221cw", "date": "2025-09-12", "amount": 5655.0, "type": "ukhad", "desc": "48\" Deril - 4", "mode": "રોકડ"}, {"id": "e_imp336ucgj", "date": "2025-09-18", "amount": 1305.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp351ifsb", "date": "2025-10-07", "amount": 9515.0, "type": "ukhad", "desc": "9\" Ex RF 06.24 Date", "mode": "રોકડ"}, {"id": "e_imp367l0sw", "date": "2025-10-11", "amount": 19240.0, "type": "jama", "desc": "Rubaru 5015+7515+6715", "mode": "રોકડ"}, {"id": "e_imp368ysm9", "date": "2025-10-11", "amount": 5.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp3746sm9", "date": "2025-10-13", "amount": 3765.0, "type": "ukhad", "desc": "12 \" Ex ABC-1", "mode": "રોકડ"}, {"id": "e_imp3756ktz", "date": "2025-10-15", "amount": 9195.0, "type": "ukhad", "desc": "ABC Road 12+12", "mode": "રોકડ"}, {"id": "e_imp3774voh", "date": "2025-10-24", "amount": 1200.0, "type": "jama", "desc": "માલજમા 07.10.25 માંથી", "mode": "માલ જમા"}, {"id": "e_imp379a0u8", "date": "2025-10-29", "amount": 4715.0, "type": "ukhad", "desc": "48 Daril- 2", "mode": "રોકડ"}, {"id": "e_imp394ua88", "date": "2025-11-11", "amount": 12155.0, "type": "jama", "desc": "Rubaru 7700+5655-1200", "mode": "રોકડ"}, {"id": "e_imp410dc2v", "date": "2025-11-27", "amount": 9635.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp43336c5", "date": "2025-12-11", "amount": 10820.0, "type": "jama", "desc": "Rubaru 1305+9515", "mode": "રોકડ"}, {"id": "e_imp439n0cg", "date": "2025-12-12", "amount": 11660.0, "type": "ukhad", "desc": "48\" Deril 4", "mode": "રોકડ"}, {"id": "e_imp4573iq2", "date": "2026-01-12", "amount": 1165.0, "type": "ukhad", "desc": "1L Portable Gyser ABC-1", "mode": "રોકડ"}, {"id": "e_imp46588za", "date": "2026-01-22", "amount": 17675.0, "type": "jama", "desc": "3765+9195+4715", "mode": "રોકડ"}, {"id": "e_imp46631oa", "date": "2026-01-22", "amount": 380.0, "type": "ukhad", "desc": "95/-  X  4ps. Multi Plug P Cash", "mode": "રોકડ"}, {"id": "e_imp467e7yz", "date": "2026-01-22", "amount": 380.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp476bh05", "date": "2026-02-06", "amount": 5015.0, "type": "ukhad", "desc": "48\" Deril-2, 24\" Deril-2", "mode": "રોકડ"}, {"id": "e_imp487urj2", "date": "2026-02-14", "amount": 5170.0, "type": "ukhad", "desc": "48\" Deril -4", "mode": "રોકડ"}, {"id": "e_imp49560ro", "date": "2026-02-23", "amount": 5175.0, "type": "ukhad", "desc": "48\" Deril-4", "mode": "રોકડ"}, {"id": "e_imp49687my", "date": "2026-02-23", "amount": 21295.0, "type": "jama", "desc": "9635+11660 Rubaru Cash", "mode": "રોકડ"}, {"id": "e_imp503e8d6", "date": "2026-03-05", "amount": 5175.0, "type": "ukhad", "desc": "48\" Daril - 4", "mode": "રોકડ"}, {"id": "e_imp5214lrp", "date": "2026-03-24", "amount": 11350.0, "type": "jama", "desc": "cash 1165+5015+5170", "mode": "રોકડ"}, {"id": "e_imp527zuub", "date": "2026-03-27", "amount": 6915.0, "type": "ukhad", "desc": "24\" ABC-2", "mode": "રોકડ"}, {"id": "e_imp5348449", "date": "2026-04-06", "amount": 8055.0, "type": "ukhad", "desc": "48\" ABC POLO BR- 6", "mode": "રોકડ"}, {"id": "e_imp5399k22", "date": "2026-04-16", "amount": 10750.0, "type": "ukhad", "desc": "48\" Deril - 8", "mode": "રોકડ"}, {"id": "e_imp5436hzg", "date": "2026-04-22", "amount": 4035.0, "type": "ukhad", "desc": "48\" Deril- 3", "mode": "રોકડ"}, {"id": "e_imp556rlep", "date": "2026-04-30", "amount": 624.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp55723tr", "date": "2026-04-30", "amount": 20470.0, "type": "jama", "desc": "5175+5175+6915+624+2580", "mode": "રોકડ"}, {"id": "e_imp558ek8q", "date": "2026-04-30", "amount": 2580.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp559xj9b", "date": "2026-04-30", "amount": 1.0, "type": "ukhad", "desc": "vadhu", "mode": "વધુ +"}, {"id": "e_imp566qlyo", "date": "2026-05-07", "amount": 5575.0, "type": "ukhad", "desc": "48\" Deril- 4", "mode": "રોકડ"}, {"id": "e_imp5693vwl", "date": "2026-05-21", "amount": 5575.0, "type": "ukhad", "desc": "48\" Deril - 4", "mode": "રોકડ"}, {"id": "e_imp581g3l4", "date": "2026-05-30", "amount": 4185.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp582hmjj", "date": "2026-05-30", "amount": 18800.0, "type": "jama", "desc": "8055+10850", "mode": "રોકડ"}, {"id": "e_imp583it8g", "date": "2026-05-30", "amount": 5.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp599gdrf", "date": "2026-06-11", "amount": 4185.0, "type": "ukhad", "desc": "48\" Daril-3, 1 Replacement Body", "mode": "રોકડ"}, {"id": "e_imp611zx4i", "date": "2026-07-07", "amount": 515.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp615uzrs", "date": "2026-07-11", "amount": 19370.0, "type": "jama", "desc": "4035+5075+5075+4185(20kasar)", "mode": "કસર −"}, {"id": "e_imp6233qov", "date": "2026-07-22", "amount": 5575.0, "type": "ukhad", "desc": "48 Deril -4", "mode": "રોકડ"}, {"id": "e_imp624ke3c", "date": "2026-07-24", "amount": 5575.0, "type": "ukhad", "desc": "48 Deril - 4", "mode": "રોકડ"}]}, "Suraj Electric": {"entries": [{"id": "e_imp27tpsc", "date": "2024-09-30", "amount": 629.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp104g4q5", "date": "2025-01-22", "amount": 629.0, "type": "jama", "desc": "આ જોગમાયા ઇલે રવાપર ની સાથે GP 1Rs. વધુ", "mode": "Google Pay"}]}, "Shree Hari Electric": {"entries": [{"id": "e_imp54dp6a", "date": "2024-11-08", "amount": 1004.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp6265id", "date": "2024-11-29", "amount": 2182.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp91zp5v", "date": "2025-01-09", "amount": 5000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp92zhe3", "date": "2025-01-09", "amount": 4500.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp117i87k", "date": "2025-02-12", "amount": 2686.0, "type": "jama", "desc": "Cash Dukane", "mode": "રોકડ"}, {"id": "e_imp146lqto", "date": "2025-03-18", "amount": 1352.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp170d6nm", "date": "2025-04-12", "amount": 1352.0, "type": "jama", "desc": "Cash", "mode": "રોકડ"}, {"id": "e_imp206qxb1", "date": "2025-05-13", "amount": 950.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp207b1km", "date": "2025-05-13", "amount": 950.0, "type": "jama", "desc": "cash same day", "mode": "રોકડ"}, {"id": "e_imp282ubum", "date": "2025-07-21", "amount": 485.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp283e8t8", "date": "2025-07-21", "amount": 485.0, "type": "jama", "desc": "Cash Same Day", "mode": "રોકડ"}, {"id": "e_imp312za06", "date": "2025-08-22", "amount": 1670.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp3707eq3", "date": "2025-10-11", "amount": 1670.0, "type": "jama", "desc": "Google Pay", "mode": "Google Pay"}, {"id": "e_imp404wqs8", "date": "2025-11-15", "amount": 450.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp435qb6n", "date": "2025-12-11", "amount": 450.0, "type": "jama", "desc": "Rubaru GPay", "mode": "Google Pay"}, {"id": "e_imp470newe", "date": "2026-01-29", "amount": 1620.0, "type": "ukhad", "desc": "Rubaru Lai Gya", "mode": "રોકડ"}, {"id": "e_imp473hz37", "date": "2026-01-30", "amount": 1620.0, "type": "jama", "desc": "Rubaru Gpay", "mode": "Google Pay"}, {"id": "e_imp5867an5", "date": "2026-05-30", "amount": 1893.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5872hkc", "date": "2026-05-30", "amount": 1893.0, "type": "jama", "desc": "", "mode": "રોકડ"}]}, "Bhakti Katleri": {"entries": [{"id": "e_imp89apqe", "date": "2025-01-02", "amount": 9394.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp124mf1w", "date": "2025-02-24", "amount": 9380.0, "type": "ukhad", "desc": "Orient 56\" Rapid Air -5", "mode": "રોકડ"}, {"id": "e_imp1290052", "date": "2025-02-28", "amount": 9380.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp134e6ey", "date": "2025-03-10", "amount": 3710.0, "type": "ukhad", "desc": "48\" Daril-2, 24\" Daril-1", "mode": "રોકડ"}, {"id": "e_imp149ytno", "date": "2025-03-26", "amount": 2000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp152h5ob", "date": "2025-03-30", "amount": 11100.0, "type": "jama", "desc": "ગુગલ પે", "mode": "Google Pay"}, {"id": "e_imp153g4af", "date": "2025-03-30", "amount": 4.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp162tvch", "date": "2025-04-08", "amount": 5476.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp163hwuv", "date": "2025-04-08", "amount": 8213.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp178g4yq", "date": "2025-04-24", "amount": 2643.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp2186hnp", "date": "2025-06-01", "amount": 5476.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp2439oc9", "date": "2025-06-13", "amount": 7957.0, "type": "ukhad", "desc": "48 Deril 2", "mode": "રોકડ"}, {"id": "e_imp2449mgv", "date": "2025-06-13", "amount": 763.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp277qs8m", "date": "2025-07-13", "amount": 8213.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp296sx3d", "date": "2025-08-11", "amount": 8903.0, "type": "ukhad", "desc": "48\"Deril-4", "mode": "રોકડ"}, {"id": "e_imp304kz7i", "date": "2025-08-15", "amount": 11363.0, "type": "jama", "desc": "Google pay 2643+7957+763", "mode": "Google Pay"}, {"id": "e_imp401lfe5", "date": "2025-11-12", "amount": 8900.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp4024un1", "date": "2025-11-12", "amount": 3.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp535ernq", "date": "2026-04-08", "amount": 8316.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp597isz6", "date": "2026-06-09", "amount": 8316.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp609tmxb", "date": "2026-07-02", "amount": 8682.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Ishwar Stor New": {"entries": [{"id": "e_imp133lghs", "date": "2025-03-08", "amount": 5425.0, "type": "ukhad", "desc": "48\"Daril-4", "mode": "રોકડ"}, {"id": "e_imp174q7po", "date": "2025-04-15", "amount": 5425.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp1991q6x", "date": "2025-05-08", "amount": 3765.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp249f4ub", "date": "2025-06-18", "amount": 3765.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp280547b", "date": "2025-07-19", "amount": 3973.0, "type": "ukhad", "desc": "48\" Deril-3", "mode": "રોકડ"}, {"id": "e_imp331yezx", "date": "2025-09-11", "amount": 3973.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}]}}}, "Naliya": {"parties": {"Shree Umiya Hardware": {"entries": [{"id": "e_imp1591l", "date": "2024-07-06", "amount": 675.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp20b64", "date": "2024-07-06", "amount": 19631.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp3i91n", "date": "2024-07-06", "amount": 30073.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp7hp76", "date": "2024-08-06", "amount": 600.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp8qzhy", "date": "2024-08-06", "amount": 10000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp17gzwr", "date": "2024-09-06", "amount": 3460.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp18moeh", "date": "2024-09-06", "amount": 10000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp33pdlp", "date": "2024-10-03", "amount": 8000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp600wsr", "date": "2024-11-22", "amount": 9500.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp81ax7e", "date": "2024-12-27", "amount": 16900.0, "type": "jama", "desc": "675+19631+30073+600+3460-10000-10000-8000-9500", "mode": "રોકડ"}, {"id": "e_imp82clhi", "date": "2024-12-27", "amount": 39.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp128nmsc", "date": "2025-02-27", "amount": 6384.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp226r06b", "date": "2025-06-04", "amount": 6380.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp2276hwc", "date": "2025-06-04", "amount": 4.0, "type": "jama", "desc": "Rubaru kasar", "mode": "કસર −"}, {"id": "e_imp3501nxw", "date": "2025-10-06", "amount": 8413.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp382waat", "date": "2025-11-03", "amount": 4000.0, "type": "jama", "desc": "Rubaru Pete", "mode": "રોકડ"}, {"id": "e_imp415sp48", "date": "2025-12-02", "amount": 4400.0, "type": "jama", "desc": "8413-4000-13", "mode": "રોકડ"}, {"id": "e_imp416p25l", "date": "2025-12-02", "amount": 13.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp421a8yh", "date": "2025-12-03", "amount": 14045.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4560lk2", "date": "2026-01-10", "amount": 4000.0, "type": "jama", "desc": "Cash Rubaru Pete", "mode": "રોકડ"}, {"id": "e_imp480jnwf", "date": "2026-02-06", "amount": 5000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5097bf2", "date": "2026-03-09", "amount": 5000.0, "type": "jama", "desc": "14045-4000-5000", "mode": "રોકડ"}, {"id": "e_imp5103vk7", "date": "2026-03-09", "amount": 45.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}]}, "Vora Kamarali": {"entries": [{"id": "e_imp6zarw", "date": "2024-08-06", "amount": 6393.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp28cuuq", "date": "2024-10-03", "amount": 3000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp57y138", "date": "2024-11-19", "amount": 1393.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp587nwl", "date": "2024-11-19", "amount": 2000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp656zlm", "date": "2024-12-02", "amount": 6068.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp86veih", "date": "2025-01-01", "amount": 5025.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp111cjal", "date": "2025-02-03", "amount": 6068.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp1380gaa", "date": "2025-03-13", "amount": 5255.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp139ol16", "date": "2025-03-13", "amount": 4234.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1540qbo", "date": "2025-04-01", "amount": 5601.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp173w92o", "date": "2025-04-15", "amount": 5025.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp189u27n", "date": "2025-05-02", "amount": 5255.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp190r1qz", "date": "2025-05-02", "amount": 15072.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp223or4h", "date": "2025-06-04", "amount": 9830.0, "type": "jama", "desc": "Rubaru 4234+5601", "mode": "રોકડ"}, {"id": "e_imp224pi05", "date": "2025-06-04", "amount": 5.0, "type": "jama", "desc": "Rubaru Kasar", "mode": "કસર −"}, {"id": "e_imp2313368", "date": "2025-06-05", "amount": 6900.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp232pqtz", "date": "2025-06-05", "amount": 5721.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp27197z8", "date": "2025-07-08", "amount": 5072.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp2888lok", "date": "2025-08-02", "amount": 3000.0, "type": "jama", "desc": "Cash Rubaru", "mode": "રોકડ"}, {"id": "e_imp289nryj", "date": "2025-08-02", "amount": 2000.0, "type": "jama", "desc": "Rubaru Google pay", "mode": "Google Pay"}, {"id": "e_imp3353kdy", "date": "2025-09-15", "amount": 5000.0, "type": "jama", "desc": "15072-5072-3000-2000 Google pay", "mode": "Google Pay"}, {"id": "e_imp352fmz5", "date": "2025-10-08", "amount": 5720.0, "type": "jama", "desc": "Cash Dukane", "mode": "રોકડ"}, {"id": "e_imp353pqlf", "date": "2025-10-08", "amount": 1.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}, {"id": "e_imp3810odf", "date": "2025-11-03", "amount": 6900.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp3834c7c", "date": "2025-11-04", "amount": 5188.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp384bymg", "date": "2025-11-04", "amount": 2955.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4123kb0", "date": "2025-12-02", "amount": 5180.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4131ri5", "date": "2025-12-02", "amount": 8.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp420wf8u", "date": "2025-12-03", "amount": 6255.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp449922x", "date": "2026-01-10", "amount": 2950.0, "type": "jama", "desc": "Rubaru cash", "mode": "રોકડ"}, {"id": "e_imp450s3db", "date": "2026-01-10", "amount": 5.0, "type": "jama", "desc": "Rubaru kasar", "mode": "કસર −"}, {"id": "e_imp4587jv8", "date": "2026-01-12", "amount": 6855.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp47863ir", "date": "2026-02-06", "amount": 6255.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp482ch5p", "date": "2026-02-07", "amount": 6671.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp507ghdd", "date": "2026-03-09", "amount": 4000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp513j887", "date": "2026-03-10", "amount": 4237.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5142hm7", "date": "2026-03-11", "amount": 3153.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp531wn0w", "date": "2026-04-02", "amount": 4000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5375zon", "date": "2026-04-13", "amount": 5526.0, "type": "jama", "desc": "GP. 6855+6671-4000-4000", "mode": "Google Pay"}, {"id": "e_imp5385fx9", "date": "2026-04-13", "amount": 7660.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp595wb8i", "date": "2026-06-05", "amount": 4239.0, "type": "jama", "desc": "google pay", "mode": "Google Pay"}, {"id": "e_imp596g40j", "date": "2026-06-05", "amount": 2.0, "type": "ukhad", "desc": "vadhu google pay", "mode": "Google Pay"}, {"id": "e_imp602cd8o", "date": "2026-06-13", "amount": 3150.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp603a3wb", "date": "2026-06-13", "amount": 3.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp617nzyi", "date": "2026-07-11", "amount": 2802.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Suresh Janaral Stor": {"entries": [{"id": "e_imp16bqz7", "date": "2024-09-06", "amount": 323.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp29j53g", "date": "2024-10-03", "amount": 1785.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp110k204", "date": "2025-02-02", "amount": 2108.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp112lvpj", "date": "2025-02-03", "amount": 2839.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp159bzp8", "date": "2025-04-04", "amount": 2830.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp160ibe3", "date": "2025-04-04", "amount": 9.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp385p0xs", "date": "2025-11-04", "amount": 1505.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4518n86", "date": "2026-01-10", "amount": 200.0, "type": "jama", "desc": "maljama iron conector star switch vadi 10*20/-= 200", "mode": "માલ જમા"}, {"id": "e_imp452cxrh", "date": "2026-01-10", "amount": 1300.0, "type": "jama", "desc": "Rubaru cash", "mode": "રોકડ"}, {"id": "e_imp453s5wa", "date": "2026-01-10", "amount": 5.0, "type": "jama", "desc": "kasar rubaru", "mode": "કસર −"}]}, "Chetan Electric Mohanbhai": {"entries": [{"id": "e_imp30nmfv", "date": "2024-10-03", "amount": 850.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp31haw6", "date": "2024-10-03", "amount": 635.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp66gdxy", "date": "2024-12-02", "amount": 1485.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}]}, "Chetan Electric Darbargadh": {"entries": [{"id": "e_imp32yuhr", "date": "2024-10-03", "amount": 3828.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp87d6fo", "date": "2025-01-01", "amount": 3800.0, "type": "jama", "desc": "Google Pay", "mode": "Google Pay"}, {"id": "e_imp88d1fe", "date": "2025-01-01", "amount": 3511.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1305njj", "date": "2025-03-03", "amount": 3539.0, "type": "jama", "desc": "Google pay 1/- vadhu mukyu che 3540", "mode": "Google Pay"}, {"id": "e_imp131eaqt", "date": "2025-03-03", "amount": 6954.0, "type": "ukhad", "desc": "Google pay vadhu", "mode": "Google Pay"}, {"id": "e_imp147f9s1", "date": "2025-03-20", "amount": 3500.0, "type": "jama", "desc": "Cash Bhupendra Sathe", "mode": "રોકડ"}, {"id": "e_imp1848mh4", "date": "2025-04-28", "amount": 3450.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp185rxtu", "date": "2025-04-28", "amount": 4.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp208n3a4", "date": "2025-05-13", "amount": 590.0, "type": "ukhad", "desc": "Patel Sathe", "mode": "રોકડ"}, {"id": "e_imp22507lx", "date": "2025-06-04", "amount": 590.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp2488d7g", "date": "2025-06-16", "amount": 5359.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp2903a3j", "date": "2025-08-02", "amount": 5360.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp291v084", "date": "2025-08-02", "amount": 1.0, "type": "ukhad", "desc": "Rubaru vadhu", "mode": "વધુ +"}, {"id": "e_imp386azp3", "date": "2025-11-04", "amount": 5682.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp414lswo", "date": "2025-12-02", "amount": 2500.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp4549giy", "date": "2026-01-10", "amount": 3180.0, "type": "jama", "desc": "Rubaru cash 5682-2500", "mode": "રોકડ"}, {"id": "e_imp455tbce", "date": "2026-01-10", "amount": 2.0, "type": "jama", "desc": "kasar rubaru", "mode": "કસર −"}, {"id": "e_imp459exve", "date": "2026-01-12", "amount": 1642.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp475h9ea", "date": "2026-02-05", "amount": 276.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp479cdbz", "date": "2026-02-06", "amount": 1630.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4831zc0", "date": "2026-02-07", "amount": 12.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp488pfyo", "date": "2026-02-19", "amount": 4366.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp508oc4h", "date": "2026-03-09", "amount": 2000.0, "type": "jama", "desc": "pete", "mode": "રોકડ"}, {"id": "e_imp5320oqw", "date": "2026-04-02", "amount": 2640.0, "type": "jama", "desc": "4366+276-2000", "mode": "રોકડ"}, {"id": "e_imp533hnds", "date": "2026-04-02", "amount": 2.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}, {"id": "e_imp6061qyv", "date": "2026-06-20", "amount": 9180.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Shreeji Tredars": {"entries": [{"id": "e_imp55fo8m", "date": "2024-11-15", "amount": 10858.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp59awla", "date": "2024-11-20", "amount": 1320.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp99ivif", "date": "2025-01-15", "amount": 5000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp100mymi", "date": "2025-01-15", "amount": 1517.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp125cjno", "date": "2025-02-25", "amount": 5000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp127w191", "date": "2025-02-27", "amount": 4005.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1675fo7", "date": "2025-04-10", "amount": 3695.0, "type": "jama", "desc": "Google pay 10858+1320+1517-5000-5000", "mode": "Google Pay"}, {"id": "e_imp204soa6", "date": "2025-05-12", "amount": 1996.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp213gb6d", "date": "2025-05-22", "amount": 2875.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp215fs65", "date": "2025-05-23", "amount": 9639.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp221d1z7", "date": "2025-06-04", "amount": 6000.0, "type": "jama", "desc": "Rubaru 4005+1996", "mode": "રોકડ"}, {"id": "e_imp222splm", "date": "2025-06-04", "amount": 1.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp247nfai", "date": "2025-06-16", "amount": 12232.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp250f5fw", "date": "2025-06-20", "amount": 5443.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp2785bcu", "date": "2025-07-14", "amount": 2779.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp279hds6", "date": "2025-07-17", "amount": 2670.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp284sjh2", "date": "2025-07-24", "amount": 9639.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp287uvje", "date": "2025-08-02", "amount": 5654.0, "type": "jama", "desc": "2875+2779 Rubaru Google pay", "mode": "Google Pay"}, {"id": "e_imp300gwsk", "date": "2025-08-12", "amount": 4571.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp341nyol", "date": "2025-09-25", "amount": 8000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp344ukwm", "date": "2025-09-27", "amount": 4945.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp346u6g1", "date": "2025-10-04", "amount": 4857.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp3492f5r", "date": "2025-10-05", "amount": 9675.0, "type": "jama", "desc": "12232+5443-8000=9675 Cash Rubaru", "mode": "રોકડ"}, {"id": "e_imp380dape", "date": "2025-11-03", "amount": 6000.0, "type": "jama", "desc": "Rubaru pete", "mode": "રોકડ"}, {"id": "e_imp4110rnx", "date": "2025-12-02", "amount": 5000.0, "type": "jama", "desc": "Rubaru Pete", "mode": "રોકડ"}, {"id": "e_imp44052w2", "date": "2025-12-12", "amount": 5213.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4479fgx", "date": "2025-12-29", "amount": 1215.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4488lm0", "date": "2026-01-10", "amount": 6043.0, "type": "jama", "desc": "GP 2670+4571+4945+4857-6000-5000", "mode": "Google Pay"}, {"id": "e_imp469rczz", "date": "2026-01-24", "amount": 5217.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp47728es", "date": "2026-02-06", "amount": 6428.0, "type": "jama", "desc": "5213+1215", "mode": "રોકડ"}, {"id": "e_imp481i032", "date": "2026-02-07", "amount": 4318.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5061o0s", "date": "2026-03-09", "amount": 5217.0, "type": "jama", "desc": "3 vadhu", "mode": "વધુ +"}, {"id": "e_imp512vo91", "date": "2026-03-10", "amount": 3793.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp530jqlq", "date": "2026-04-02", "amount": 4318.0, "type": "jama", "desc": "2/- vadhu aapya", "mode": "વધુ +"}, {"id": "e_imp567ngd1", "date": "2026-05-09", "amount": 2892.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp570lucp", "date": "2026-05-23", "amount": 3793.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp6008n8j", "date": "2026-06-13", "amount": 2890.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp601qw5h", "date": "2026-06-13", "amount": 2.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp607y4qz", "date": "2026-06-27", "amount": 3093.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp608kho8", "date": "2026-06-30", "amount": 2310.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Harjivan Hansraj": {"entries": [{"id": "e_imp1616ldn", "date": "2025-04-04", "amount": 3820.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp209gkj3", "date": "2025-05-14", "amount": 3820.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp321ib9f", "date": "2025-09-05", "amount": 2620.0, "type": "ukhad", "desc": "48\" ABC - 2", "mode": "રોકડ"}, {"id": "e_imp345y6tt", "date": "2025-09-27", "amount": 2620.0, "type": "ukhad", "desc": "24\"ABC-1, 48\"ABC-1", "mode": "રોકડ"}, {"id": "e_imp347e0n2", "date": "2025-10-04", "amount": 2620.0, "type": "jama", "desc": "Cash Rubaru", "mode": "રોકડ"}, {"id": "e_imp4173ynf", "date": "2025-12-02", "amount": 2620.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}]}, "Ratansi Virji": {"entries": [{"id": "e_imp181ro9r", "date": "2025-04-26", "amount": 2615.0, "type": "ukhad", "desc": "48\"ABC B,W-2", "mode": "રોકડ"}, {"id": "e_imp2285xme", "date": "2025-06-04", "amount": 2615.0, "type": "ukhad", "desc": "48\" ABC-2", "mode": "રોકડ"}, {"id": "e_imp229p8hv", "date": "2025-06-04", "amount": 2610.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp2304y7w", "date": "2025-06-04", "amount": 5.0, "type": "jama", "desc": "Rubaru kasar", "mode": "કસર −"}, {"id": "e_imp2921q0v", "date": "2025-08-02", "amount": 2610.0, "type": "jama", "desc": "Rubaru Cash", "mode": "રોકડ"}, {"id": "e_imp293ys83", "date": "2025-08-02", "amount": 5.0, "type": "jama", "desc": "Rubaru Kasar", "mode": "કસર −"}, {"id": "e_imp305xfxk", "date": "2025-08-18", "amount": 1315.0, "type": "ukhad", "desc": "48\" ABC-1", "mode": "રોકડ"}, {"id": "e_imp318xihz", "date": "2025-08-29", "amount": 1325.0, "type": "ukhad", "desc": "48\" ABC 1", "mode": "રોકડ"}, {"id": "e_imp348or89", "date": "2025-10-04", "amount": 2640.0, "type": "jama", "desc": "1315+1325=2640 Cash Rubaru", "mode": "રોકડ"}, {"id": "e_imp441rd15", "date": "2025-12-12", "amount": 2215.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4447u56", "date": "2025-12-20", "amount": 2200.0, "type": "jama", "desc": "Maljama gyser pin 2150+50", "mode": "માલ જમા"}, {"id": "e_imp4452bbz", "date": "2025-12-20", "amount": 15.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp605w3iw", "date": "2026-06-15", "amount": 2795.0, "type": "ukhad", "desc": "48\" Deril -2", "mode": "રોકડ"}]}, "Yogesh Stor": {"entries": [{"id": "e_imp2011390", "date": "2025-05-09", "amount": 5041.0, "type": "ukhad", "desc": "bill 07.05.25 mukyu 09.05.25", "mode": "રોકડ"}, {"id": "e_imp245qvk5", "date": "2025-06-13", "amount": 5040.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp246sf8r", "date": "2025-06-13", "amount": 1.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp339evsw", "date": "2025-09-19", "amount": 750.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp3404x95", "date": "2025-09-19", "amount": 750.0, "type": "jama", "desc": "Cash", "mode": "રોકડ"}, {"id": "e_imp474c60k", "date": "2026-02-03", "amount": 133.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp564h9m6", "date": "2026-05-02", "amount": 1237.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp604emjj", "date": "2026-06-13", "amount": 1370.0, "type": "jama", "desc": "133+1237", "mode": "રોકડ"}]}, "Jayesh Radio": {"entries": [{"id": "e_imp387ybs3", "date": "2025-11-04", "amount": 2065.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4186gg8", "date": "2025-12-02", "amount": 2060.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp419bmb1", "date": "2025-12-02", "amount": 5.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}, {"id": "e_imp484pec7", "date": "2026-02-07", "amount": 2868.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5117g8w", "date": "2026-03-09", "amount": 2868.0, "type": "jama", "desc": "2 vadhu", "mode": "વધુ +"}]}, "Om Janral": {"entries": [{"id": "e_imp499mx3k", "date": "2026-02-24", "amount": 777.0, "type": "ukhad", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp500mkv4", "date": "2026-02-24", "amount": 777.0, "type": "jama", "desc": "Rubaru Gpay", "mode": "Google Pay"}]}}}, "Pandhro": {"parties": {"Anish Fashion": {"entries": [{"id": "e_imp103p0b", "date": "2024-08-16", "amount": 888.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp11l7bg", "date": "2024-08-16", "amount": 1350.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp12ziti", "date": "2024-08-16", "amount": 1278.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp41qk32", "date": "2024-10-16", "amount": 665.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp77en17", "date": "2024-12-12", "amount": 1000.0, "type": "jama", "desc": "Google Pay", "mode": "Google Pay"}, {"id": "e_imp79623d", "date": "2024-12-19", "amount": 550.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp803v0b", "date": "2024-12-19", "amount": 3.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}, {"id": "e_imp116q7yt", "date": "2025-02-10", "amount": 1000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp140aigz", "date": "2025-03-13", "amount": 500.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp175ek31", "date": "2025-04-17", "amount": 500.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp212jaea", "date": "2025-05-21", "amount": 500.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp214lkdp", "date": "2025-05-22", "amount": 128.0, "type": "jama", "desc": "37+28+63 માલજમા owDeril-3,fenbox-1,juctionw-9", "mode": "માલ જમા"}, {"id": "e_imp267kamr", "date": "2025-07-04", "amount": 3255.0, "type": "ukhad", "desc": "24\" orient w-1", "mode": "રોકડ"}, {"id": "e_imp301f2tb", "date": "2025-08-12", "amount": 1000.0, "type": "jama", "desc": "Google Pay", "mode": "Google Pay"}, {"id": "e_imp330iw3y", "date": "2025-09-11", "amount": 1000.0, "type": "jama", "desc": "Pete Rubaru", "mode": "રોકડ"}, {"id": "e_imp371zrfq", "date": "2025-10-11", "amount": 750.0, "type": "jama", "desc": "Rubaru pete", "mode": "રોકડ"}, {"id": "e_imp396m10v", "date": "2025-11-11", "amount": 500.0, "type": "jama", "desc": "Rubaru 3255-1000-1000-750", "mode": "રોકડ"}, {"id": "e_imp397n1hg", "date": "2025-11-11", "amount": 5.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}]}, "Bharat Fashion": {"entries": [{"id": "e_imp13xo92", "date": "2024-08-31", "amount": 3815.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp19dped", "date": "2024-09-10", "amount": 2695.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp36h1vh", "date": "2024-10-16", "amount": 1500.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp48ryrt", "date": "2024-11-08", "amount": 1500.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp762xhn", "date": "2024-12-12", "amount": 1500.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp97pn4d", "date": "2025-01-13", "amount": 1000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp121tiwr", "date": "2025-02-20", "amount": 1000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp1222i8q", "date": "2025-02-20", "amount": 10.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp40913bv", "date": "2025-11-27", "amount": 240.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4287t2p", "date": "2025-12-11", "amount": 240.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}]}, "Roshni Electric": {"entries": [{"id": "e_imp34y699", "date": "2024-10-16", "amount": 2749.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp446nzd", "date": "2024-11-08", "amount": 1500.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp113kcnq", "date": "2025-02-04", "amount": 1249.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp114xznh", "date": "2025-02-06", "amount": 5744.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp16877zw", "date": "2025-04-12", "amount": 3000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp2422idb", "date": "2025-06-12", "amount": 2744.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp259ppsa", "date": "2025-07-03", "amount": 5185.0, "type": "ukhad", "desc": "48\" wit decorative -2", "mode": "રોકડ"}, {"id": "e_imp2680i87", "date": "2025-07-05", "amount": 9536.0, "type": "ukhad", "desc": "48\" wit deco -4", "mode": "રોકડ"}, {"id": "e_imp297qjia", "date": "2025-08-12", "amount": 5182.0, "type": "jama", "desc": "Google Pay", "mode": "Google Pay"}, {"id": "e_imp298y7qq", "date": "2025-08-12", "amount": 3.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp323cru3", "date": "2025-09-11", "amount": 3536.0, "type": "jama", "desc": "Google pay Rubaru", "mode": "Google Pay"}, {"id": "e_imp356vtz2", "date": "2025-10-10", "amount": 3000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp388pwtw", "date": "2025-11-10", "amount": 3000.0, "type": "jama", "desc": "9536-3536-3000", "mode": "રોકડ"}]}, "Charming Fashion": {"entries": [{"id": "e_imp35g35e", "date": "2024-10-16", "amount": 463.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp45htdi", "date": "2024-11-08", "amount": 975.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp93p5te", "date": "2025-01-10", "amount": 1430.0, "type": "jama", "desc": "Google Pay", "mode": "Google Pay"}, {"id": "e_imp945ey2", "date": "2025-01-10", "amount": 8.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp196vyy5", "date": "2025-05-08", "amount": 2915.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp260qffl", "date": "2025-07-03", "amount": 2900.0, "type": "jama", "desc": "cash", "mode": "રોકડ"}, {"id": "e_imp261hgyz", "date": "2025-07-03", "amount": 15.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp358wjxv", "date": "2025-10-11", "amount": 4165.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4246x62", "date": "2025-12-11", "amount": 4160.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp425x2w2", "date": "2025-12-11", "amount": 5.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp5291lw8", "date": "2026-04-01", "amount": 1000.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Ekta Stor": {"entries": [{"id": "e_imp37x0bs", "date": "2024-10-16", "amount": 1910.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp499ld5", "date": "2024-11-08", "amount": 1258.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp506m1m", "date": "2024-11-08", "amount": 900.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp68xstq", "date": "2024-12-10", "amount": 2260.0, "type": "jama", "desc": "Google pay 1910+1258-900-9", "mode": "Google Pay"}, {"id": "e_imp6923ra", "date": "2024-12-10", "amount": 8.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}, {"id": "e_imp72s69b", "date": "2024-12-11", "amount": 1417.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp90ynav", "date": "2025-01-03", "amount": 1641.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1097kw5", "date": "2025-01-31", "amount": 3055.0, "type": "ukhad", "desc": "48\" ABC -2", "mode": "રોકડ"}, {"id": "e_imp126egs0", "date": "2025-02-27", "amount": 2074.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp165jrpi", "date": "2025-04-09", "amount": 5290.0, "type": "ukhad", "desc": "24 Daril-1, 48 Daril-2, 48 ABC-1", "mode": "રોકડ"}, {"id": "e_imp19193ll", "date": "2025-05-04", "amount": 3050.0, "type": "jama", "desc": "Google pay 1417+1641", "mode": "Google Pay"}, {"id": "e_imp192m81y", "date": "2025-05-04", "amount": 8.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp200988c", "date": "2025-05-09", "amount": 2956.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp238w45o", "date": "2025-06-10", "amount": 5120.0, "type": "jama", "desc": "Google pay 3055+2074", "mode": "Google Pay"}, {"id": "e_imp2390k0b", "date": "2025-06-10", "amount": 9.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp264vr26", "date": "2025-07-03", "amount": 1915.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp2724xf7", "date": "2025-07-11", "amount": 4000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp286q6gr", "date": "2025-08-01", "amount": 3131.0, "type": "ukhad", "desc": "24 abc 1, 48 abc 1", "mode": "રોકડ"}, {"id": "e_imp316xpe4", "date": "2025-08-29", "amount": 2635.0, "type": "ukhad", "desc": "24\" ABC 1, 48\" ABC 1", "mode": "રોકડ"}, {"id": "e_imp325zk9b", "date": "2025-09-11", "amount": 5000.0, "type": "jama", "desc": "Pete Rubaru", "mode": "રોકડ"}, {"id": "e_imp343eq2s", "date": "2025-09-27", "amount": 1247.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp357mdxa", "date": "2025-10-10", "amount": 2805.0, "type": "ukhad", "desc": "48\" Deril-2", "mode": "રોકડ"}, {"id": "e_imp362dafe", "date": "2025-10-11", "amount": 4290.0, "type": "jama", "desc": "5290+2956+1915+3131-4000-5000 Rubaru", "mode": "રોકડ"}, {"id": "e_imp363gxtq", "date": "2025-10-11", "amount": 2.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp376qkb1", "date": "2025-10-17", "amount": 1575.0, "type": "ukhad", "desc": "48\" ABC-1", "mode": "રોકડ"}, {"id": "e_imp390up9f", "date": "2025-11-11", "amount": 3500.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp4054qoo", "date": "2025-11-18", "amount": 2965.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp422ut3p", "date": "2025-12-10", "amount": 2620.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp429xndk", "date": "2025-12-11", "amount": 4760.0, "type": "jama", "desc": "Rubaru 2535+1247+2805+1575-3500", "mode": "રોકડ"}, {"id": "e_imp430l5vt", "date": "2025-12-11", "amount": 2.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp486nrrm", "date": "2026-02-14", "amount": 2733.0, "type": "ukhad", "desc": "48\" ABC", "mode": "રોકડ"}, {"id": "e_imp492gt8p", "date": "2026-02-23", "amount": 2965.0, "type": "jama", "desc": "G.pay Rubaru", "mode": "રોકડ"}, {"id": "e_imp515obop", "date": "2026-03-16", "amount": 2287.0, "type": "ukhad", "desc": "48\" Deril -1", "mode": "રોકડ"}, {"id": "e_imp516fics", "date": "2026-03-23", "amount": 2695.0, "type": "ukhad", "desc": "48\" ABC Polo-2", "mode": "રોકડ"}, {"id": "e_imp518fdgd", "date": "2026-03-24", "amount": 4000.0, "type": "jama", "desc": "Cash pete", "mode": "રોકડ"}, {"id": "e_imp5448fy4", "date": "2026-04-24", "amount": 1250.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp551juwb", "date": "2026-04-30", "amount": 4000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp563p519", "date": "2026-05-02", "amount": 1465.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5654oiv", "date": "2026-05-04", "amount": 1465.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp571o3z7", "date": "2026-05-25", "amount": 3280.0, "type": "ukhad", "desc": "48\" Daril-2", "mode": "રોકડ"}, {"id": "e_imp5739v7p", "date": "2026-05-29", "amount": 2265.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp578krxy", "date": "2026-05-30", "amount": 5.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp579uiyf", "date": "2026-05-30", "amount": 3580.0, "type": "jama", "desc": "2620+2733+2287+2695+1250-4000-4000", "mode": "રોકડ"}, {"id": "e_imp6102bef", "date": "2026-07-03", "amount": 1150.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp614t52y", "date": "2026-07-11", "amount": 2930.0, "type": "jama", "desc": "1465+1465(30 Kasar)", "mode": "કસર −"}]}, "New Maruti Electric": {"entries": [{"id": "e_imp381j2j", "date": "2024-10-16", "amount": 1031.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1575u7w", "date": "2025-04-04", "amount": 1030.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp158cgn0", "date": "2025-04-04", "amount": 1.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp399329g", "date": "2025-11-12", "amount": 13401.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp431fz99", "date": "2025-12-11", "amount": 5000.0, "type": "jama", "desc": "Pete Rubaru", "mode": "રોકડ"}, {"id": "e_imp462gots", "date": "2026-01-22", "amount": 5000.0, "type": "jama", "desc": "pete", "mode": "રોકડ"}, {"id": "e_imp493wyes", "date": "2026-02-23", "amount": 3400.0, "type": "jama", "desc": "13401-5000-5000-1", "mode": "રોકડ"}, {"id": "e_imp494mwc9", "date": "2026-02-23", "amount": 1.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp5019wr9", "date": "2026-02-25", "amount": 14675.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp519s2hc", "date": "2026-03-24", "amount": 5000.0, "type": "jama", "desc": "pete Cash", "mode": "રોકડ"}, {"id": "e_imp552qigz", "date": "2026-04-30", "amount": 645.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp553tdlr", "date": "2026-04-30", "amount": 5000.0, "type": "jama", "desc": "Pete", "mode": "રોકડ"}, {"id": "e_imp580qxu7", "date": "2026-05-30", "amount": 5320.0, "type": "jama", "desc": "14675+646-5000-5000", "mode": "રોકડ"}]}, "Safil Store 2": {"entries": [{"id": "e_imp39t9cc", "date": "2024-10-16", "amount": 2494.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp95oo4s", "date": "2025-01-11", "amount": 2333.0, "type": "ukhad", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp96f16q", "date": "2025-01-11", "amount": 2494.0, "type": "jama", "desc": "Cash", "mode": "રોકડ"}, {"id": "e_imp105sck6", "date": "2025-01-24", "amount": 936.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp135putn", "date": "2025-03-11", "amount": 4171.0, "type": "ukhad", "desc": "48\" Daril-1", "mode": "રોકડ"}, {"id": "e_imp143cpmj", "date": "2025-03-17", "amount": 18470.0, "type": "ukhad", "desc": "Siraj Bhai Home", "mode": "રોકડ"}, {"id": "e_imp144e0bs", "date": "2025-03-17", "amount": 18470.0, "type": "jama", "desc": "Siraj Bhai Dukne Cash", "mode": "રોકડ"}, {"id": "e_imp156pf6n", "date": "2025-04-03", "amount": 3269.0, "type": "jama", "desc": "Google pay 2333+936", "mode": "Google Pay"}, {"id": "e_imp2532iwb", "date": "2025-06-27", "amount": 4171.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp25422v4", "date": "2025-06-27", "amount": 350.0, "type": "ukhad", "desc": "Cash", "mode": "રોકડ"}, {"id": "e_imp255n4dq", "date": "2025-06-27", "amount": 350.0, "type": "jama", "desc": "cash", "mode": "રોકડ"}, {"id": "e_imp256blpk", "date": "2025-06-27", "amount": 1996.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp257pxvl", "date": "2025-06-27", "amount": 1278.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp299ijal", "date": "2025-08-12", "amount": 1105.0, "type": "ukhad", "desc": "સિરાજ ભાઈ", "mode": "રોકડ"}, {"id": "e_imp314onay", "date": "2025-08-25", "amount": 1100.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp315buyi", "date": "2025-08-26", "amount": 5.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp3225uqx", "date": "2025-09-10", "amount": 1090.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp328jrw0", "date": "2025-09-11", "amount": 600.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp329ri3d", "date": "2025-09-11", "amount": 3274.0, "type": "jama", "desc": "Google pay 1996+1278", "mode": "Google Pay"}, {"id": "e_imp338ktzj", "date": "2025-09-19", "amount": 2165.0, "type": "ukhad", "desc": "સીરાજ ભાઈ", "mode": "રોકડ"}, {"id": "e_imp3663565", "date": "2025-10-11", "amount": 1690.0, "type": "jama", "desc": "1090+600 Rubaru", "mode": "રોકડ"}, {"id": "e_imp392x05k", "date": "2025-11-11", "amount": 2160.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp393rmdm", "date": "2025-11-11", "amount": 5.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}, {"id": "e_imp400obj6", "date": "2025-11-12", "amount": 2338.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp432ffv5", "date": "2025-12-11", "amount": 2338.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp5046225", "date": "2026-03-06", "amount": 4729.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5206zaj", "date": "2026-03-24", "amount": 2730.0, "type": "jama", "desc": "pete", "mode": "રોકડ"}, {"id": "e_imp5547w43", "date": "2026-04-30", "amount": 2000.0, "type": "jama", "desc": "4729-2730", "mode": "રોકડ"}, {"id": "e_imp5550h8b", "date": "2026-04-30", "amount": 1.0, "type": "ukhad", "desc": "vadhu", "mode": "વધુ +"}, {"id": "e_imp619n9db", "date": "2026-07-13", "amount": 2685.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Tez Electric": {"entries": [{"id": "e_imp42kbz6", "date": "2024-10-27", "amount": 7946.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp432tid", "date": "2024-11-08", "amount": 5000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5622nj", "date": "2024-11-16", "amount": 3954.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp73mox5", "date": "2024-12-12", "amount": 7940.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp142ockc", "date": "2025-03-17", "amount": 34495.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp148hl47", "date": "2025-03-24", "amount": 3264.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp2024uml", "date": "2025-05-12", "amount": 15000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp205eegi", "date": "2025-05-13", "amount": 1815.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp2169w1k", "date": "2025-05-27", "amount": 1465.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp24016z2", "date": "2025-06-12", "amount": 9.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp241c2cs", "date": "2025-06-12", "amount": 10500.0, "type": "jama", "desc": "Google pay 3954+34495-5000-7940-15000", "mode": "Google Pay"}, {"id": "e_imp273kxr5", "date": "2025-07-12", "amount": 7945.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp274cn52", "date": "2025-07-12", "amount": 1.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp281y3ed", "date": "2025-07-21", "amount": 5188.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp302hw4g", "date": "2025-08-13", "amount": 6540.0, "type": "jama", "desc": "Google pay 3264+1815+1465", "mode": "Google Pay"}, {"id": "e_imp3038vg3", "date": "2025-08-13", "amount": 4.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp308zzf2", "date": "2025-08-21", "amount": 2210.0, "type": "ukhad", "desc": "Note:- P switch 100qty  12.25 kevana che ne che 12.7", "mode": "રોકડ"}, {"id": "e_imp34200n5", "date": "2025-09-27", "amount": 5188.0, "type": "jama", "desc": "ગુગલ પે", "mode": "Google Pay"}, {"id": "e_imp354kb46", "date": "2025-10-10", "amount": 2200.0, "type": "jama", "desc": "2200 Google pay", "mode": "Google Pay"}, {"id": "e_imp355axhk", "date": "2025-10-10", "amount": 10.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp398263z", "date": "2025-11-12", "amount": 10024.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp423x67b", "date": "2025-12-11", "amount": 6000.0, "type": "jama", "desc": "Rubaru GPay", "mode": "Google Pay"}, {"id": "e_imp490kqrc", "date": "2026-02-23", "amount": 4020.0, "type": "jama", "desc": "10024-6000-4", "mode": "રોકડ"}, {"id": "e_imp491vmo1", "date": "2026-02-23", "amount": 4.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp498a6bm", "date": "2026-02-24", "amount": 2540.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5052e5x", "date": "2026-03-09", "amount": 5912.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp517jkex", "date": "2026-03-24", "amount": 2540.0, "type": "jama", "desc": "g pay", "mode": "Google Pay"}, {"id": "e_imp5360lei", "date": "2026-04-10", "amount": 3111.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp547z28v", "date": "2026-04-30", "amount": 5912.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp574b3wb", "date": "2026-05-30", "amount": 3110.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp575qy3v", "date": "2026-05-30", "amount": 1.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp622hfsy", "date": "2026-07-20", "amount": 3527.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Jageshwar Stor": {"entries": [{"id": "e_imp4610ug", "date": "2024-11-08", "amount": 1230.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp74pbfs", "date": "2024-12-12", "amount": 5145.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp1208dzc", "date": "2025-02-20", "amount": 2000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp1555323", "date": "2025-04-03", "amount": 2000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp177b8up", "date": "2025-04-24", "amount": 1000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp203yw9e", "date": "2025-05-12", "amount": 1375.0, "type": "jama", "desc": "Google pay 1230+5145-2000-2000-1000", "mode": "Google Pay"}, {"id": "e_imp359bfzb", "date": "2025-10-11", "amount": 2003.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp389e98w", "date": "2025-11-11", "amount": 1000.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp426dtev", "date": "2025-12-11", "amount": 1000.0, "type": "jama", "desc": "Rubaru 2003-1000", "mode": "રોકડ"}, {"id": "e_imp427b8li", "date": "2025-12-11", "amount": 3.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}, {"id": "e_imp525up57", "date": "2026-03-25", "amount": 2296.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5480owm", "date": "2026-04-30", "amount": 1000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp57636qh", "date": "2026-05-30", "amount": 1300.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp577paaw", "date": "2026-05-30", "amount": 4.0, "type": "ukhad", "desc": "vadhu", "mode": "વધુ +"}]}, "Sagar Stor": {"entries": [{"id": "e_imp47fj7w", "date": "2024-11-08", "amount": 1085.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp75qx5y", "date": "2024-12-12", "amount": 8038.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp987nm1", "date": "2025-01-15", "amount": 3524.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp101cp2m", "date": "2025-01-22", "amount": 12640.0, "type": "jama", "desc": "Google pay (1085+8038+3524)", "mode": "Google Pay"}, {"id": "e_imp102ctvs", "date": "2025-01-22", "amount": 7.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp107bsd7", "date": "2025-01-29", "amount": 2406.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp171j1do", "date": "2025-04-14", "amount": 6558.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp186lalu", "date": "2025-04-30", "amount": 925.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp19319o4", "date": "2025-05-06", "amount": 9880.0, "type": "jama", "desc": "Google pay 2406+6558+925", "mode": "Google Pay"}, {"id": "e_imp194c7ri", "date": "2025-05-06", "amount": 9.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp210z6az", "date": "2025-05-16", "amount": 1835.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp262j7rz", "date": "2025-07-03", "amount": 1830.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp263aluo", "date": "2025-07-03", "amount": 5.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp3069j7k", "date": "2025-08-19", "amount": 3071.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp319okbj", "date": "2025-09-01", "amount": 3123.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp324wvlc", "date": "2025-09-11", "amount": 5000.0, "type": "jama", "desc": "Pete Rubaru", "mode": "રોકડ"}, {"id": "e_imp360ubyf", "date": "2025-10-11", "amount": 1190.0, "type": "jama", "desc": "3071+3123-5000 Rubaru", "mode": "રોકડ"}, {"id": "e_imp3614wyy", "date": "2025-10-11", "amount": 4.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp446ry0o", "date": "2025-12-27", "amount": 6073.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp460xrd4", "date": "2026-01-22", "amount": 6050.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4616lf5", "date": "2026-01-22", "amount": 23.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp528d0wb", "date": "2026-03-30", "amount": 12911.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp546x0dy", "date": "2026-04-29", "amount": 4557.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp54903nx", "date": "2026-04-30", "amount": 12900.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp550p5oa", "date": "2026-04-30", "amount": 11.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp612u2cp", "date": "2026-07-11", "amount": 4557.0, "type": "jama", "desc": "(7 kasar)", "mode": "કસર −"}, {"id": "e_imp613b0xr", "date": "2026-07-11", "amount": 655.0, "type": "ukhad", "desc": "Rubaru", "mode": "રોકડ"}]}, "Rushi Ele": {"entries": [{"id": "e_imp51s8w0", "date": "2024-11-08", "amount": 5148.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp70d83y", "date": "2024-12-10", "amount": 2641.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp834koa", "date": "2024-12-29", "amount": 7780.0, "type": "jama", "desc": "Google Pay 5148+2641", "mode": "Google Pay"}, {"id": "e_imp84updy", "date": "2024-12-29", "amount": 9.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp2699zyc", "date": "2025-07-05", "amount": 13227.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp326bcyy", "date": "2025-09-11", "amount": 13227.0, "type": "jama", "desc": "Rubaru 7 kasar", "mode": "કસર −"}, {"id": "e_imp327o4s6", "date": "2025-09-11", "amount": 9465.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp364ycvf", "date": "2025-10-11", "amount": 9450.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp3651f6o", "date": "2025-10-11", "amount": 15.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp378ateu", "date": "2025-10-29", "amount": 3780.0, "type": "ukhad", "desc": "AP ABC 3", "mode": "રોકડ"}, {"id": "e_imp391dvjb", "date": "2025-11-11", "amount": 3780.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp438u5lr", "date": "2025-12-12", "amount": 2572.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp463q5b7", "date": "2026-01-22", "amount": 2570.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp464fu29", "date": "2026-01-22", "amount": 2.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}]}, "Rizvan Electric": {"entries": [{"id": "e_imp53fe1w", "date": "2024-11-08", "amount": 4488.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp71xfsd", "date": "2024-12-10", "amount": 4488.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp10862je", "date": "2025-01-29", "amount": 8055.0, "type": "ukhad", "desc": "48\" 6 ABC", "mode": "રોકડ"}, {"id": "e_imp123zt6f", "date": "2025-02-24", "amount": 1615.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp166flhh", "date": "2025-04-10", "amount": 7000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp258g1l7", "date": "2025-06-30", "amount": 2670.0, "type": "jama", "desc": "Google pay 8055+1615-7000", "mode": "Google Pay"}, {"id": "e_imp625tkwq", "date": "2026-07-24", "amount": 4145.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}]}, "Sultanali Janmamad": {"entries": [{"id": "e_imp164x8l6", "date": "2025-04-08", "amount": 1946.0, "type": "ukhad", "desc": "12\" Cabin Fan ABC-1", "mode": "રોકડ"}, {"id": "e_imp176ibj5", "date": "2025-04-17", "amount": 1946.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp294tsgi", "date": "2025-08-08", "amount": 2219.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp3070wm2", "date": "2025-08-19", "amount": 2219.0, "type": "jama", "desc": "Cash", "mode": "રોકડ"}, {"id": "e_imp5989zeg", "date": "2026-06-09", "amount": 1008.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp618yp3z", "date": "2026-07-11", "amount": 1008.0, "type": "jama", "desc": "", "mode": "રોકડ"}]}, "Ramjaj Stor (Sultan Stor)": {"entries": [{"id": "e_imp172kh78", "date": "2025-04-14", "amount": 15581.0, "type": "ukhad", "desc": "48\" ABC -4, 48\"wit Deco-2 other", "mode": "રોકડ"}, {"id": "e_imp179jjkm", "date": "2025-04-25", "amount": 10000.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp180cvmo", "date": "2025-04-26", "amount": 5000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp187fola", "date": "2025-04-30", "amount": 550.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp188ebq8", "date": "2025-04-30", "amount": 31.0, "type": "jama", "desc": "કસર", "mode": "કસર −"}, {"id": "e_imp2352fqq", "date": "2025-06-09", "amount": 3318.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp236crrg", "date": "2025-06-09", "amount": 16.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp237vget", "date": "2025-06-09", "amount": 400.0, "type": "jama", "desc": "Pete Cash Bhuj colour vada", "mode": "રોકડ"}, {"id": "e_imp2518zw7", "date": "2025-06-23", "amount": 2000.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp313rvgs", "date": "2025-08-22", "amount": 900.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp3173om6", "date": "2025-08-29", "amount": 6924.0, "type": "ukhad", "desc": "48\" ABC -2", "mode": "રોકડ"}, {"id": "e_imp372sbm2", "date": "2025-10-11", "amount": 6950.0, "type": "jama", "desc": "3318+16+6924-2000-400-900 Rubaru", "mode": "રોકડ"}, {"id": "e_imp373qih8", "date": "2025-10-11", "amount": 8.0, "type": "jama", "desc": "Kadar", "mode": "રોકડ"}, {"id": "e_imp485a7ie", "date": "2026-02-09", "amount": 4375.0, "type": "ukhad", "desc": "48\" ABC-2, 24\" ABC-1", "mode": "રોકડ"}, {"id": "e_imp526zn0k", "date": "2026-03-25", "amount": 4375.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp5401hp4", "date": "2026-04-20", "amount": 3373.0, "type": "ukhad", "desc": "48\" Deril Br -2 bill 17 na mukyu 20 na", "mode": "રોકડ"}, {"id": "e_imp541nw0e", "date": "2026-04-20", "amount": 220.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5429pav", "date": "2026-04-20", "amount": 220.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp588udqh", "date": "2026-05-30", "amount": 3.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}, {"id": "e_imp5893zir", "date": "2026-05-30", "amount": 3370.0, "type": "jama", "desc": "", "mode": "રોકડ"}]}, "Ramjan Memon Kulra Customer": {"entries": [{"id": "e_imp275lqbs", "date": "2025-07-12", "amount": 1950.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp276drgg", "date": "2025-07-12", "amount": 1950.0, "type": "jama", "desc": "Google pay", "mode": "Google Pay"}, {"id": "e_imp406i6sd", "date": "2025-11-19", "amount": 2205.0, "type": "ukhad", "desc": "ABC Geyser", "mode": "રોકડ"}, {"id": "e_imp407bt6v", "date": "2025-11-26", "amount": 2200.0, "type": "jama", "desc": "Google Pay", "mode": "Google Pay"}, {"id": "e_imp40894h5", "date": "2025-11-26", "amount": 5.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}]}, "Patel Fashion": {"entries": [{"id": "e_imp4034mnx", "date": "2025-11-12", "amount": 1265.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp4365pgn", "date": "2025-12-11", "amount": 1260.0, "type": "jama", "desc": "Rubaru", "mode": "રોકડ"}, {"id": "e_imp437hw30", "date": "2025-12-11", "amount": 5.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}, {"id": "e_imp545mkns", "date": "2026-04-24", "amount": 1515.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp590kx5r", "date": "2026-05-30", "amount": 1510.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp5915e2u", "date": "2026-05-30", "amount": 5.0, "type": "jama", "desc": "Kasar", "mode": "કસર −"}]}, "Suhag Fashion": {"entries": [{"id": "e_imp442bdv4", "date": "2025-12-12", "amount": 1203.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp443f141", "date": "2025-12-13", "amount": 213.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp468f5t6", "date": "2026-01-22", "amount": 1416.0, "type": "jama", "desc": "213+1203", "mode": "રોકડ"}, {"id": "e_imp572eltz", "date": "2026-05-26", "amount": 2328.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp592oev1", "date": "2026-05-30", "amount": 2330.0, "type": "jama", "desc": "", "mode": "રોકડ"}, {"id": "e_imp593c3mt", "date": "2026-05-30", "amount": 2.0, "type": "ukhad", "desc": "vadhu", "mode": "વધુ +"}]}, "Sapna Stor": {"entries": [{"id": "e_imp489eqa5", "date": "2026-02-19", "amount": 2735.0, "type": "ukhad", "desc": "", "mode": "રોકડ"}, {"id": "e_imp523mmld", "date": "2026-03-24", "amount": 2730.0, "type": "jama", "desc": "cash", "mode": "રોકડ"}, {"id": "e_imp524ay1c", "date": "2026-03-24", "amount": 5.0, "type": "jama", "desc": "kasar", "mode": "કસર −"}]}}}}};
+let data = loadData();
+let currentGroup = Object.keys(data.groups)[0] || null;
+let expandedParty = null;
+let selectedType = 'jama';
+let selectedMode = 'રોકડ';
+
+function loadData(){
+  let d = null;
+  if(!localStorage.getItem(SEED_FLAG)){
+    d = JSON.parse(JSON.stringify(SEED_DATA));
+    try{ localStorage.setItem(SEED_FLAG,'1'); }catch(e){}
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }catch(e){}
+    return d;
+  }
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) d = JSON.parse(raw);
+  }catch(e){}
+  if(!d){
+    d = {
+      groups:{
+        "Ravapar":{parties:{}},
+        "Naliya":{parties:{}},
+        "Pandhro":{parties:{}}
+      }
+    };
+  }
+  return d;
+}
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1600);
+}
+function fmt(n){
+  n = Math.round(n);
+  return '₹' + n.toLocaleString('en-IN');
+}
+
+function partyBalance(group,party){
+  const entries = data.groups[group].parties[party].entries;
+  let bal=0;
+  entries.forEach(e=>{ bal += (e.type==='ukhad'? e.amount : -e.amount); });
+  return bal; // positive = customer owes us (ukhad), negative = we owe / advance
+}
+function groupTotal(group){
+  let t=0;
+  Object.keys(data.groups[group].parties).forEach(p=>{ t+=partyBalance(group,p); });
+  return t;
+}
+function grandTotal(){
+  let t=0;
+  Object.keys(data.groups).forEach(g=>{ t+=groupTotal(g); });
+  return t;
+}
+
+function renderTabs(){
+  const tabs=document.getElementById('tabs');
+  tabs.innerHTML='';
+  Object.keys(data.groups).forEach(g=>{
+    const el=document.createElement('div');
+    el.className='tab'+(g===currentGroup?' active':'');
+    el.textContent=g;
+    el.onclick=()=>{currentGroup=g;expandedParty=null;renderAll();};
+    tabs.appendChild(el);
+  });
+  const addTab=document.createElement('div');
+  addTab.className='tab add-tab';
+  addTab.textContent='+ ગ્રુપ';
+  addTab.onclick=openAddGroup;
+  tabs.appendChild(addTab);
+}
+
+function renderGroupTotal(){
+  document.getElementById('groupLabel').textContent = (currentGroup||'—') + ' - કુલ બાકી';
+  const gt = currentGroup ? groupTotal(currentGroup) : 0;
+  const el=document.getElementById('groupTotal');
+  el.textContent = fmt(Math.abs(gt)) + (gt>0?' (લેવાના)':gt<0?' (દેવાના)':'');
+  document.getElementById('grandTotal').textContent = fmt(Math.abs(grandTotal()));
+}
+
+function renderPartyList(){
+  const list=document.getElementById('partyList');
+  list.innerHTML='';
+  if(!currentGroup){ list.innerHTML='<div class="empty">પહેલા ગ્રુપ બનાવો</div>'; return; }
+  const parties = Object.keys(data.groups[currentGroup].parties);
+  if(parties.length===0){
+    list.innerHTML='<div class="empty">આ ગ્રુપમાં હજુ કોઈ પાર્ટી નથી.<br>નીચે "+ નવી પાર્ટી ઉમેરો" દબાવો.</div>';
+    return;
+  }
+  parties.sort((a,b)=>a.localeCompare(b,'gu')).forEach(p=>{
+    const bal = partyBalance(currentGroup,p);
+    const entries = data.groups[currentGroup].parties[p].entries.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    const card=document.createElement('div');
+    card.className='party-card';
+
+    const balClass = bal>0?'owe':bal<0?'recv':'zero';
+    const balLabel = bal>0?'લેવાના':bal<0?'દેવાના':'ક્લિયર';
+
+    card.innerHTML = `
+      <div class="party-head" onclick="toggleParty('${p.replace(/'/g,"\\'")}')">
+        <div>
+          <div class="p-name">${p}
+            <span class="p-icon" onclick="renamePartyPrompt(event,'${currentGroup.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}')">✏️</span>
+            <span class="p-icon" onclick="deletePartyConfirm(event,'${currentGroup.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}')">🗑️</span>
+          </div>
+          <div class="p-count">${entries.length} એન્ટ્રી</div>
+        </div>
+        <div class="p-bal ${balClass}">${fmt(Math.abs(bal))}<small>${balLabel}</small></div>
+      </div>
+      <div class="entries ${expandedParty===p?'open':''}" id="ent_${cssSafe(p)}">
+        ${entries.length? entries.map(e=>entryRow(p,e)).join('') : '<div class="empty" style="padding:16px 0;">કોઈ એન્ટ્રી નથી</div>'}
+      </div>
+      <div class="party-actions">
+        <div class="mini-btn" onclick="quickAdd('${p.replace(/'/g,"\\'")}')">+ એન્ટ્રી</div>
+        <div class="mini-btn share" onclick="shareParty('${p.replace(/'/g,"\\'")}')">📤 WhatsApp</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+function cssSafe(s){ return s.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+function timeAgo(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  if(isNaN(d.getTime())) return '';
+  let months = (now.getFullYear()-d.getFullYear())*12 + (now.getMonth()-d.getMonth());
+  let days = now.getDate()-d.getDate();
+  if(days<0){
+    months-=1;
+    const prevMonthLastDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    days += prevMonthLastDay;
+  }
+  if(months<0 || (months===0&&days<0)) return 'આજે';
+  if(months===0 && days===0) return 'આજે';
+  let parts=[];
+  if(months>0) parts.push(months+' મહિનો');
+  if(days>0) parts.push(days+' દિવસ');
+  return parts.join(' ')+' પહેલા';
+}
+
+function entryRow(party,e){
+  return `
+    <div class="entry-row">
+      <div class="e-left">
+        <span class="e-tag ${e.type}">${e.type==='jama'?'જમા':'બાકી'}</span>
+        <div class="e-desc">${e.desc||'-'}</div>
+        <div class="e-date">${e.date} • ${e.mode}</div>
+        <div class="e-time">${timeAgo(e.date)}</div>
+      </div>
+      <div class="e-right">
+        <div class="e-amt ${e.type}">${fmt(e.amount)}</div>
+        <span class="e-del" onclick="delEntry(event,'${currentGroup.replace(/'/g,"\\'")}','${party.replace(/'/g,"\\'")}','${e.id}')">✕</span>
+      </div>
+    </div>
+  `;
+}
+
+function toggleParty(p){
+  expandedParty = expandedParty===p ? null : p;
+  renderPartyList();
+}
+
+function renamePartyPrompt(ev,group,party){
+  ev.stopPropagation();
+  const newName = prompt('પાર્ટીનું નવું નામ લખો:', party);
+  if(newName===null) return;
+  const trimmed = newName.trim();
+  if(!trimmed || trimmed===party) return;
+  if(data.groups[group].parties[trimmed]){
+    showToast('આ નામની પાર્ટી પહેલેથી છે');
+    return;
+  }
+  data.groups[group].parties[trimmed] = data.groups[group].parties[party];
+  delete data.groups[group].parties[party];
+  if(expandedParty===party) expandedParty=trimmed;
+  saveData();
+  renderAll();
+  showToast('નામ બદલાયું');
+}
+
+function deletePartyConfirm(ev,group,party){
+  ev.stopPropagation();
+  const entries = data.groups[group].parties[party].entries;
+  const msg = entries.length>0
+    ? `"${party}" ને ${entries.length} એન્ટ્રી છે. ડિલીટ કરવાથી બધો હિસાબ કાયમ માટે જતો રહેશે. ખરેખર ડિલીટ કરવું છે?`
+    : `"${party}" ડિલીટ કરવી છે?`;
+  if(!confirm(msg)) return;
+  delete data.groups[group].parties[party];
+  if(expandedParty===party) expandedParty=null;
+  saveData();
+  renderAll();
+  showToast('પાર્ટી ડિલીટ થઈ');
+}
+
+function delEntry(ev,group,party,id){
+  ev.stopPropagation();
+  if(!confirm('આ એન્ટ્રી ડિલિટ કરવી છે?')) return;
+  const arr = data.groups[group].parties[party].entries;
+  data.groups[group].parties[party].entries = arr.filter(x=>x.id!==id);
+  saveData();
+  renderAll();
+  showToast('એન્ટ્રી ડિલિટ થઈ');
+}
+
+function renderAll(){
+  renderTabs();
+  renderGroupTotal();
+  renderPartyList();
+}
+
+/* ---- Add Entry ---- */
+function openAddEntry(){
+  const gSel=document.getElementById('e_group');
+  gSel.innerHTML = Object.keys(data.groups).map(g=>`<option value="${g}">${g}</option>`).join('');
+  gSel.value = currentGroup || Object.keys(data.groups)[0];
+  gSel.onchange = fillPartySelect;
+  fillPartySelect();
+  document.getElementById('e_date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('e_amount').value='';
+  document.getElementById('e_desc').value='';
+  setType('jama');
+  setMode('રોકડ');
+  document.getElementById('entryOverlay').classList.add('open');
+}
+function fillPartySelect(){
+  const g = document.getElementById('e_group').value;
+  const pSel = document.getElementById('e_party');
+  const parties = Object.keys(data.groups[g].parties);
+  pSel.innerHTML = parties.length
+    ? parties.map(p=>`<option value="${p}">${p}</option>`).join('')
+    : '<option value="">-- પહેલા પાર્ટી ઉમેરો --</option>';
+}
+function quickAdd(party){
+  openAddEntry();
+  document.getElementById('e_group').value = currentGroup;
+  fillPartySelect();
+  document.getElementById('e_party').value = party;
+}
+function setType(t){
+  selectedType=t;
+  document.getElementById('opt_jama').classList.toggle('sel',t==='jama');
+  document.getElementById('opt_ukhad').classList.toggle('sel',t==='ukhad');
+}
+document.getElementById('modeRow').addEventListener('click',e=>{
+  if(e.target.classList.contains('mode-opt')) setMode(e.target.dataset.m);
+});
+function setMode(m){
+  selectedMode=m;
+  document.querySelectorAll('.mode-opt').forEach(el=>{
+    el.classList.toggle('sel', el.dataset.m===m);
+  });
+}
+function saveEntry(){
+  const g=document.getElementById('e_group').value;
+  const p=document.getElementById('e_party').value;
+  const date=document.getElementById('e_date').value;
+  const amount=parseFloat(document.getElementById('e_amount').value);
+  if(!p){ showToast('પહેલા પાર્ટી ઉમેરો'); return; }
+  if(!date || !amount || amount<=0){ showToast('તારીખ અને રકમ ભરો'); return; }
+  const desc=document.getElementById('e_desc').value.trim();
+  const entry={ id:'e'+Date.now()+Math.random().toString(36).slice(2,6), date, amount, type:selectedType, desc, mode:selectedMode };
+  data.groups[g].parties[p].entries.push(entry);
+  saveData();
+  currentGroup=g;
+  closeOverlay('entryOverlay');
+  renderAll();
+  showToast('હિસાબ સેવ થયો');
+}
+
+/* ---- Add Party ---- */
+function openAddParty(){
+  const gSel=document.getElementById('np_group');
+  gSel.innerHTML = Object.keys(data.groups).map(g=>`<option value="${g}">${g}</option>`).join('');
+  gSel.value = currentGroup || Object.keys(data.groups)[0];
+  document.getElementById('np_name').value='';
+  document.getElementById('partyOverlay').classList.add('open');
+}
+function saveParty(){
+  const g=document.getElementById('np_group').value;
+  const name=document.getElementById('np_name').value.trim();
+  if(!name){ showToast('પાર્ટીનું નામ લખો'); return; }
+  if(data.groups[g].parties[name]){ showToast('આ નામની પાર્ટી પહેલેથી છે'); return; }
+  data.groups[g].parties[name]={entries:[]};
+  saveData();
+  currentGroup=g;
+  closeOverlay('partyOverlay');
+  renderAll();
+  showToast('પાર્ટી ઉમેરાઈ');
+}
+
+/* ---- Add Group ---- */
+function openAddGroup(){
+  document.getElementById('ng_name').value='';
+  document.getElementById('groupOverlay').classList.add('open');
+}
+function saveGroup(){
+  const name=document.getElementById('ng_name').value.trim();
+  if(!name){ showToast('ગ્રુપનું નામ લખો'); return; }
+  if(data.groups[name]){ showToast('આ નામનું ગ્રુપ પહેલેથી છે'); return; }
+  data.groups[name]={parties:{}};
+  saveData();
+  currentGroup=name;
+  closeOverlay('groupOverlay');
+  renderAll();
+  showToast('ગ્રુપ ઉમેરાયું');
+}
+
+function closeOverlay(id){ document.getElementById(id).classList.remove('open'); }
+
+/* ---- WhatsApp share ---- */
+function shareParty(party){
+  const entries = data.groups[currentGroup].parties[party].entries.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const bal = partyBalance(currentGroup,party);
+  let msg = `*${party}* (${currentGroup}) - હિસાબ\n\n`;
+  entries.forEach(e=>{
+    msg += `${e.date} - ${e.type==='jama'?'જમા':'બાકી'} ${fmt(e.amount)}`;
+    if(e.desc) msg += ` (${e.desc})`;
+    msg += `\n`;
+  });
+  msg += `\n*કુલ ${bal>0?'લેવાના':bal<0?'દેવાના':'બાકી'}: ${fmt(Math.abs(bal))}*`;
+  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
+
+/* ---- Month-wise Excel-style matrix ---- */
+const gujMonths=['જાન્યુઆરી','ફેબ્રુઆરી','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગસ્ટ','સપ્ટેમ્બર','ઓક્ટોબર','નવેમ્બર','ડિસેમ્બર'];
+function fmtPlain(n){ return Math.round(n).toLocaleString('en-IN'); }
+function cellDisp(v){
+  if(v===0) return '-';
+  return v<0 ? ('-'+fmtPlain(Math.abs(v))) : fmtPlain(v);
+}
+function cellCls(v){ return v>0?'pos':v<0?'neg':'zero'; }
+/* FIFO allocation: a jama (payment) is applied against the OLDEST outstanding
+   ukhad first, so a bill from month 6 paid off in month 8 shows the reduction
+   in month 6's own column, not as a separate line in month 8. Any payment left
+   over after clearing all old dues becomes an advance credit shown (with minus)
+   in the month the payment was actually made. */
+function computeFIFOByMonth(entries){
+  const sorted = entries.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const bills=[], advances=[];
+  sorted.forEach(e=>{
+    const month = e.date.slice(0,7);
+    if(e.type==='ukhad'){
+      let amt=e.amount, i=0;
+      while(amt>0 && i<advances.length){
+        if(advances[i].remaining<0){
+          const avail=-advances[i].remaining;
+          if(avail<=amt){ amt-=avail; advances[i].remaining=0; i++; }
+          else { advances[i].remaining+=amt; amt=0; }
+        } else i++;
+      }
+      if(amt>0) bills.push({month, remaining:amt});
+    } else {
+      let amt=e.amount, i=0;
+      while(amt>0 && i<bills.length){
+        if(bills[i].remaining>0){
+          if(bills[i].remaining<=amt){ amt-=bills[i].remaining; bills[i].remaining=0; i++; }
+          else { bills[i].remaining-=amt; amt=0; }
+        } else i++;
+      }
+      if(amt>0) advances.push({month, remaining:-amt});
+    }
+  });
+  const byMonth={};
+  bills.forEach(b=>{ byMonth[b.month]=(byMonth[b.month]||0)+b.remaining; });
+  advances.forEach(a=>{ byMonth[a.month]=(byMonth[a.month]||0)+a.remaining; });
+  return byMonth;
+}
+
+/* Breakdown version: keeps the ORIGINAL bill amount untouched and lists each
+   payment applied against it as a separate line (with date), instead of
+   netting them into one number. Used only for on-screen display; totals
+   still use computeFIFOByMonth above so figures stay consistent. */
+function computeFIFOBreakdown(entries){
+  const sorted = entries.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const bills=[], advances=[];
+  sorted.forEach(e=>{
+    const month = e.date.slice(0,7);
+    if(e.type==='ukhad'){
+      let amt=e.amount, i=0;
+      while(amt>0 && i<advances.length){
+        if(advances[i].remaining<0){
+          const avail=-advances[i].remaining;
+          if(avail<=amt){ amt-=avail; advances[i].remaining=0; i++; }
+          else { advances[i].remaining+=amt; amt=0; }
+        } else i++;
+      }
+      bills.push({month, date:e.date, original:e.amount, remaining:amt, lines:[]});
+    } else {
+      let amt=e.amount, i=0;
+      while(amt>0 && i<bills.length){
+        if(bills[i].remaining>0){
+          const portion = Math.min(bills[i].remaining, amt);
+          bills[i].remaining -= portion; amt -= portion;
+          bills[i].lines.push({amt:-portion, date:e.date});
+        }
+        i++;
+      }
+      if(amt>0) advances.push({month, date:e.date, remaining:-amt});
+    }
+  });
+  const byMonth={};
+  function pushLine(m,line){ (byMonth[m]=byMonth[m]||[]).push(line); }
+  bills.forEach(b=>{
+    pushLine(b.month, {amt:b.original, date:b.date});
+    b.lines.forEach(l=>pushLine(b.month, l));
+  });
+  advances.forEach(a=>{ if(a.remaining<0) pushLine(a.month, {amt:a.remaining, date:a.date}); });
+  Object.keys(byMonth).forEach(m=>byMonth[m].sort((a,b)=>a.date.localeCompare(b.date)));
+  return byMonth;
+}
+function shortDate(ds){
+  const p = ds.split('-');
+  return p[2]+'/'+p[1];
+}
+function lineHtml(l){
+  if(!l) return '-';
+  const cls = l.amt<0 ? 'neg' : 'pos';
+  const val = l.amt<0 ? ('-'+fmtPlain(Math.abs(l.amt))) : fmtPlain(l.amt);
+  return `<div class="cl-line ${cls}">${val}<span class="cl-date">${shortDate(l.date)}</span></div>`;
+}
+function monthLabelShort(ym){
+  const [y,m]=ym.split('-').map(Number);
+  return String(m);
+}
+function monthLabelFull(ym){
+  const [y,m]=ym.split('-').map(Number);
+  return m+"/"+String(y).slice(2);
+}
+function openMonthAnalysis(){
+  document.getElementById('monthOverlay').classList.add('open');
+  runMonthAnalysis();
+}
+function runMonthAnalysis(){
+  const resEl = document.getElementById('ma_results');
+  const monthSet = new Set();
+  Object.keys(data.groups).forEach(gr=>{
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      data.groups[gr].parties[p].entries.forEach(e=>{ monthSet.add(e.date.slice(0,7)); });
+    });
+  });
+  const allMonths = Array.from(monthSet).sort().reverse();
+  if(allMonths.length===0){
+    resEl.innerHTML = '<div class="empty">હજુ કોઈ એન્ટ્રી નથી</div>';
+    return;
+  }
+  // pre-compute FIFO per party once, and find months where someone still has a non-zero baki
+  const byMonthCache = {};
+  const activeMonths = new Set();
+  Object.keys(data.groups).forEach(gr=>{
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      const bym = computeFIFOByMonth(data.groups[gr].parties[p].entries);
+      byMonthCache[gr+'||'+p] = bym;
+      Object.keys(bym).forEach(m=>{ if(Math.round(bym[m])!==0) activeMonths.add(m); });
+    });
+  });
+  const months = allMonths.filter(m=>activeMonths.has(m));
+  if(months.length===0){
+    resEl.innerHTML = '<div class="empty">બધું ચૂકતે છે, કોઈ બાકી નથી</div>';
+    return;
+  }
+  const grandRowTotals={}; months.forEach(m=>grandRowTotals[m]=0);
+  let grandTotalAll=0;
+
+  let html = '<div class="mtable-wrap"><table class="mtable"><thead><tr>';
+  html += '<th class="sr">#</th><th class="pname">પાર્ટી</th>';
+  months.forEach(m=>{ html += `<th title="${monthLabelFull(m)}">${monthLabelShort(m)}</th>`; });
+  html += '<th class="total">કુલ</th></tr></thead><tbody>';
+
+  Object.keys(data.groups).forEach(gr=>{
+    const partyRows = [];
+    const groupMonthTotals={}; months.forEach(m=>groupMonthTotals[m]=0);
+    let groupGrand=0;
+    Object.keys(data.groups[gr].parties).filter(p=>data.groups[gr].parties[p].entries.length>0)
+      .sort((a,b)=>a.localeCompare(b,'gu')).forEach(p=>{
+        const byMonth = byMonthCache[gr+'||'+p];
+        let rowTotal=0, cells='';
+        months.forEach(m=>{
+          const net = byMonth[m]||0;
+          rowTotal += net;
+          cells += `<td class="cell-multi ${cellCls(net)}">${cellDisp(net)}</td>`;
+        });
+        if(Math.round(rowTotal)===0) return; // fully cleared party, skip row
+        months.forEach(m=>{ groupMonthTotals[m]+=(byMonth[m]||0); grandRowTotals[m]+=(byMonth[m]||0); });
+        groupGrand += rowTotal; grandTotalAll += rowTotal;
+        const shortName = p.split(' ')[0];
+        partyRows.push(`<tr><td class="sr">${partyRows.length+1}</td><td class="pname">${shortName}</td>${cells}<td class="total ${cellCls(rowTotal)}">${cellDisp(rowTotal)}</td></tr>`);
+      });
+    if(partyRows.length===0) return;
+    html += `<tr class="grp-head"><td colspan="${months.length+3}">${gr}</td></tr>`;
+    html += partyRows.join('');
+    let gcells='';
+    months.forEach(m=>{ gcells += `<td class="${cellCls(groupMonthTotals[m])}">${cellDisp(groupMonthTotals[m])}</td>`; });
+    html += `<tr class="grp-total"><td class="sr"></td><td class="pname">કુલ (${gr})</td>${gcells}<td class="total ${cellCls(groupGrand)}">${cellDisp(groupGrand)}</td></tr>`;
+  });
+
+  let grcells='';
+  months.forEach(m=>{ grcells += `<td class="${cellCls(grandRowTotals[m])}">${cellDisp(grandRowTotals[m])}</td>`; });
+  html += `<tr class="grp-total" style="background:var(--gold);border-top:3px double var(--cloth-dark);"><td class="sr"></td><td class="pname" style="background:var(--gold);color:#3A2E20;">સર્વ કુલ</td>${grcells}<td class="total ${cellCls(grandTotalAll)}" style="background:var(--gold);">${cellDisp(grandTotalAll)}</td></tr>`;
+
+  html += '</tbody></table></div>';
+  html += '<div style="font-size:11px;color:var(--ink-soft);margin-top:8px;">અંક = બાકી (લેવાના) &nbsp; − અંક = જમા વધારે (દેવાના)</div>';
+  resEl.innerHTML = html;
+  window._maMonths = months;
+}
+
+function exportMonthImage(){
+  const wrap = document.querySelector('#ma_results .mtable-wrap');
+  if(!wrap || typeof html2canvas==='undefined'){ showToast('ફોટો બનાવવામાં ભૂલ, ફરી પ્રયત્ન કરો'); return; }
+  showToast('ફોટો બનાવાય છે...');
+  const table = wrap.querySelector('table');
+  const clone = table.cloneNode(true);
+  clone.querySelectorAll('th,td').forEach(el=>{
+    el.style.position='static';
+    el.style.boxShadow='none';
+  });
+  clone.style.minWidth='auto';
+  const holder = document.createElement('div');
+  holder.style.position='fixed';
+  holder.style.left='-9999px';
+  holder.style.top='0';
+  holder.style.background='#F6EEDD';
+  holder.style.padding='14px';
+  holder.style.display='inline-block';
+  const heading = document.createElement('div');
+  heading.textContent = 'મહિનાવાર હિસાબ (ગ્રુપ મુજબ)';
+  heading.style.fontFamily = "'Noto Serif Gujarati',serif";
+  heading.style.fontWeight = '700';
+  heading.style.fontSize = '17px';
+  heading.style.color = '#5C1418';
+  heading.style.marginBottom = '10px';
+  holder.appendChild(heading);
+  holder.appendChild(clone);
+  document.body.appendChild(holder);
+  html2canvas(holder, {backgroundColor:'#F6EEDD', scale:2}).then(canvas=>{
+    document.body.removeChild(holder);
+    canvas.toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const today = new Date().toISOString().slice(0,10);
+      a.href = url;
+      a.download = 'mahinavar_hisab_'+today+'.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('ફોટો ડાઉનલોડ થયો');
+    });
+  }).catch(()=>{
+    if(holder.parentNode) document.body.removeChild(holder);
+    showToast('ફોટો બનાવવામાં ભૂલ આવી');
+  });
+}
+
+/* ---- Backup / Restore ---- */
+function openBackup(){
+  document.getElementById('backupOverlay').classList.add('open');
+}
+function downloadBackup(){
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = 'hisab_backup_'+today+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('બેકઅપ ડાઉનલોડ થયો');
+}
+function restoreBackup(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  if(!confirm('આ હાલનો બધો ડેટા બદલી નાખશે. ચાલુ રાખવું છે?')){ ev.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed || !parsed.groups) throw new Error('invalid');
+      data = parsed;
+      saveData();
+      currentGroup = Object.keys(data.groups)[0] || null;
+      expandedParty = null;
+      closeOverlay('backupOverlay');
+      renderAll();
+      showToast('બેકઅપ પાછું આવ્યું');
+    }catch(err){
+      showToast('આ ફાઇલ બરાબર બેકઅપ ફાઇલ નથી');
+    }
+    ev.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+/* ---- Turnover (yearly / month-wise graph) ---- */
+const monShort=['જાન્યુ','ફેબ્રુ','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગ','સપ્ટ','ઓક્ટ','નવે','ડિસે'];
+let toMode = 'turnover';
+function computeTurnover(){
+  // Turnover = total ઉધાર (sale/business) amount, by entry date. Payments (જમા) are not counted.
+  const byYear={};
+  Object.keys(data.groups).forEach(gr=>{
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      data.groups[gr].parties[p].entries.forEach(e=>{
+        if(e.type==='ukhad'){
+          const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
+          if(!byYear[y]) byYear[y]=new Array(12).fill(0);
+          byYear[y][m]+=e.amount;
+        }
+      });
+    });
+  });
+  return byYear;
+}
+function computeCollection(){
+  // Collection = total જમા (payment received - cash/GPay/bank etc) amount, by entry date.
+  const byYear={};
+  Object.keys(data.groups).forEach(gr=>{
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      data.groups[gr].parties[p].entries.forEach(e=>{
+        if(e.type==='jama'){
+          const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
+          if(!byYear[y]) byYear[y]=new Array(12).fill(0);
+          byYear[y][m]+=e.amount;
+        }
+      });
+    });
+  });
+  return byYear;
+}
+function computeCollectionByGroup(){
+  // group -> year -> [12 months] of જમા (collection) totals
+  const byGroup={};
+  Object.keys(data.groups).forEach(gr=>{
+    const byYear={};
+    Object.keys(data.groups[gr].parties).forEach(p=>{
+      data.groups[gr].parties[p].entries.forEach(e=>{
+        if(e.type==='jama'){
+          const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
+          if(!byYear[y]) byYear[y]=new Array(12).fill(0);
+          byYear[y][m]+=e.amount;
+        }
+      });
+    });
+    byGroup[gr]=byYear;
+  });
+  return byGroup;
+}
+function switchToTab(mode){
+  toMode = mode;
+  document.getElementById('to_tab_turnover').classList.toggle('sel', mode==='turnover');
+  document.getElementById('to_tab_collection').classList.toggle('sel', mode==='collection');
+  document.getElementById('to_tab_compare').classList.toggle('sel', mode==='compare');
+  renderTurnover();
+}
+function openTurnover(){
+  toMode = 'turnover';
+  document.getElementById('to_tab_turnover').classList.add('sel');
+  document.getElementById('to_tab_collection').classList.remove('sel');
+  document.getElementById('to_tab_compare').classList.remove('sel');
+  const t = computeTurnover(), c = computeCollection();
+  const years = Array.from(new Set([...Object.keys(t), ...Object.keys(c)])).sort();
+  const ySel = document.getElementById('to_year');
+  if(years.length===0){
+    ySel.innerHTML='';
+    document.getElementById('to_results').innerHTML = '<div class="empty">હજુ કોઈ એન્ટ્રી નથી</div>';
+  } else {
+    ySel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+    ySel.value = years[years.length-1];
+  }
+  document.getElementById('turnoverOverlay').classList.add('open');
+  if(years.length>0) renderTurnover();
+}
+function renderGroupCollectionTable(y){
+  const groups = Object.keys(data.groups);
+  if(groups.length===0) return '';
+  const byGroup = computeCollectionByGroup();
+  const rows = groups.map(gr=>{
+    const months = (byGroup[gr] && byGroup[gr][y]) || new Array(12).fill(0);
+    const t = months.reduce((a,b)=>a+b,0);
+    const cells = months.map(v=>`<td>${v>0?fmtPlain(v):'-'}</td>`).join('');
+    return `<tr><td class="pname">${gr}</td>${cells}<td class="total" style="font-weight:800;">${fmtPlain(t)}</td></tr>`;
+  }).join('');
+  return `
+    <div style="margin-top:16px;padding-top:10px;border-top:2px dashed var(--paper-line);">
+      <div style="font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:6px;">ટુર (ગ્રુપ) મુજબ મહિનાવાર કલેક્શન - ${y}</div>
+      <div class="mtable-wrap"><table class="mtable">
+        <thead><tr><th class="pname">ટુર</th>${monShort.map(m=>`<th>${m}</th>`).join('')}<th class="total">કુલ</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>
+  `;
+}
+function renderGroupYearlyCollectionTable(){
+  const groups = Object.keys(data.groups);
+  if(groups.length===0) return '';
+  const byGroup = computeCollectionByGroup();
+  const allYears = new Set();
+  groups.forEach(gr=>{ Object.keys(byGroup[gr]||{}).forEach(y=>allYears.add(y)); });
+  const years = Array.from(allYears).sort();
+  if(years.length===0) return '';
+  const grandPerYear = {}; years.forEach(y=>grandPerYear[y]=0);
+  const rows = groups.map(gr=>{
+    const cells = years.map(y=>{
+      const months = (byGroup[gr] && byGroup[gr][y]) || new Array(12).fill(0);
+      const t = months.reduce((a,b)=>a+b,0);
+      grandPerYear[y]+=t;
+      return `<td>${t>0?fmtPlain(t):'-'}</td>`;
+    }).join('');
+    return `<tr><td class="pname">${gr}</td>${cells}</tr>`;
+  }).join('');
+  const grandRow = `<tr class="grp-total"><td class="pname">કુલ</td>${years.map(y=>`<td class="total">${fmtPlain(grandPerYear[y])}</td>`).join('')}</tr>`;
+  return `
+    <div style="margin-top:16px;padding-top:10px;border-top:2px dashed var(--paper-line);">
+      <div style="font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:6px;">ટુર મુજબ વર્ષવાર કલેક્શન</div>
+      <div class="mtable-wrap"><table class="mtable">
+        <thead><tr><th class="pname">ટુર</th>${years.map(y=>`<th>${y}</th>`).join('')}</tr></thead>
+        <tbody>${rows}${grandRow}</tbody>
+      </table></div>
+    </div>
+  `;
+}
+function renderCompare(){
+  const t = computeTurnover(), c = computeCollection();
+  const y = document.getElementById('to_year').value;
+  const tMonths = t[y] || new Array(12).fill(0);
+  const cMonths = c[y] || new Array(12).fill(0);
+  const tTotal = tMonths.reduce((a,b)=>a+b,0);
+  const cTotal = cMonths.reduce((a,b)=>a+b,0);
+  const pct = tTotal>0 ? Math.round((cTotal/tTotal)*100) : 0;
+  const max = Math.max(...tMonths, ...cMonths, 1);
+
+  const bars = tMonths.map((tv,i)=>{
+    const cv = cMonths[i];
+    const th = Math.max(Math.round((tv/max)*120), tv>0?4:0);
+    const ch = Math.max(Math.round((cv/max)*120), cv>0?4:0);
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="display:flex;align-items:flex-end;gap:2px;height:120px;">
+        <div style="width:9px;max-width:20px;height:${th}px;background:linear-gradient(180deg,var(--gold),#8a6226);border-radius:3px 3px 0 0;"></div>
+        <div style="width:9px;max-width:20px;height:${ch}px;background:linear-gradient(180deg,var(--jama),#0f4a2c);border-radius:3px 3px 0 0;"></div>
+      </div>
+      <div style="font-size:10px;color:var(--ink-soft);margin-top:4px;">${monShort[i]}</div>
+    </div>`;
+  }).join('');
+
+  const years = Array.from(new Set([...Object.keys(t), ...Object.keys(c)])).sort();
+  const yearRows = years.map(yy=>{
+    const tt = (t[yy]||new Array(12).fill(0)).reduce((a,b)=>a+b,0);
+    const ct = (c[yy]||new Array(12).fill(0)).reduce((a,b)=>a+b,0);
+    const yp = tt>0 ? Math.round((ct/tt)*100) : 0;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 2px;border-bottom:1px dashed var(--paper-line);font-size:12.5px;">
+      <span style="${yy===y?'font-weight:800;color:var(--cloth-dark);':''}">${yy}</span>
+      <span style="color:#8a6226;font-weight:700;">ટર્ન ₹${fmtPlain(tt)}</span>
+      <span style="color:#0f4a2c;font-weight:700;">કલે ₹${fmtPlain(ct)}</span>
+      <span style="font-weight:800;color:var(--cloth-dark);">${yp}%</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('to_results').innerHTML = `
+    <div style="text-align:center;margin:8px 0 10px;">
+      <div style="font-size:12px;color:var(--ink-soft);">${y} — ટર્નઓવર સામે કલેક્શન</div>
+      <div style="font-size:22px;font-weight:800;color:var(--cloth-dark);font-family:'Noto Serif Gujarati',serif;">${pct}% આવ્યું</div>
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:12.5px;">
+        <span style="color:#8a6226;font-weight:700;">● ટર્નઓવર ₹${fmtPlain(tTotal)}</span>
+        <span style="color:#0f4a2c;font-weight:700;">● કલેક્શન ₹${fmtPlain(cTotal)}</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:150px;border-bottom:2px solid var(--paper-line);padding:0 2px 4px;">
+      ${bars}
+    </div>
+    <div style="margin-top:16px;padding-top:10px;border-top:2px dashed var(--paper-line);">
+      <div style="font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:2px;">વર્ષ મુજબ સરખામણી</div>
+      ${yearRows}
+    </div>
+  `;
+}
+function renderTurnover(){
+  if(toMode==='compare'){ renderCompare(); return; }
+  const byYear = toMode==='turnover' ? computeTurnover() : computeCollection();
+  const y = document.getElementById('to_year').value;
+  const months = byYear[y] || new Array(12).fill(0);
+  const total = months.reduce((a,b)=>a+b,0);
+  const max = Math.max(...months, 1);
+  const label = toMode==='turnover' ? 'ટર્નઓવર' : 'કલેક્શન';
+  const barColor = toMode==='turnover' ? 'linear-gradient(180deg,var(--gold),#8a6226)' : 'linear-gradient(180deg,var(--jama),#0f4a2c)';
+
+  const bars = months.map((v,i)=>{
+    const h = Math.max(Math.round((v/max)*120), v>0?4:0);
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="font-size:8.5px;color:var(--ink-soft);margin-bottom:2px;white-space:nowrap;">${v>0?fmtPlain(v):''}</div>
+      <div style="width:100%;max-width:20px;height:${h}px;background:${barColor};border-radius:3px 3px 0 0;"></div>
+      <div style="font-size:10px;color:var(--ink-soft);margin-top:4px;">${monShort[i]}</div>
+    </div>`;
+  }).join('');
+
+  const years = Object.keys(byYear).sort();
+  const yearRows = years.map(yy=>{
+    const t = byYear[yy].reduce((a,b)=>a+b,0);
+    return `<div style="display:flex;justify-content:space-between;padding:6px 2px;border-bottom:1px dashed var(--paper-line);font-size:13px;">
+      <span style="${yy===y?'font-weight:800;color:var(--cloth-dark);':''}">${yy}</span>
+      <span style="font-weight:700;">₹${fmtPlain(t)}</span>
+    </div>`;
+  }).join('');
+
+  const groupTable = toMode==='collection' ? renderGroupCollectionTable(y) + renderGroupYearlyCollectionTable() : '';
+
+  document.getElementById('to_results').innerHTML = `
+    <div style="text-align:center;margin:8px 0 14px;">
+      <div style="font-size:12px;color:var(--ink-soft);">${y} નું કુલ ${label}</div>
+      <div style="font-size:23px;font-weight:800;color:var(--cloth-dark);font-family:'Noto Serif Gujarati',serif;">₹${fmtPlain(total)}</div>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:150px;border-bottom:2px solid var(--paper-line);padding:0 2px 4px;">
+      ${bars}
+    </div>
+    <div style="margin-top:16px;padding-top:10px;border-top:2px dashed var(--paper-line);">
+      <div style="font-weight:700;font-size:13px;color:var(--ink-soft);margin-bottom:2px;">વર્ષ મુજબ ${label}</div>
+      ${yearRows}
+    </div>
+    ${groupTable}
+  `;
+}
+
+renderAll();
+</script>
+</body>
+</html>
