@@ -456,9 +456,9 @@
 <div class="overlay" id="backupOverlay">
   <div class="sheet">
     <h3>બેકઅપ / રિસ્ટોર</h3>
-    <button class="add-party-btn" style="margin-bottom:10px;" onclick="downloadBackup()">⬇️ બેકઅપ ડાઉનલોડ કરો</button>
+    <button class="add-party-btn" style="margin-bottom:10px;" onclick="downloadBackup()">⬆️ બેકઅપ ડાઉનલોડ કરો</button>
     <label class="add-party-btn" style="display:block;text-align:center;border-color:var(--jama);color:var(--jama);cursor:pointer;">
-      ⬆️ બેકઅપ પાછું લાવો (Restore)
+      ⬇️ બેકઅપ પાછું લાવો (Restore)
       <input type="file" id="restoreFile" accept="application/json" style="display:none;" onchange="restoreBackup(event)">
     </label>
     <div style="font-size:11.5px;color:var(--ink-soft);margin-top:12px;line-height:1.6;">
@@ -466,6 +466,18 @@
     </div>
     <div class="sheet-actions">
       <button class="btn cancel" onclick="closeOverlay('backupOverlay')">બંધ કરો</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Confirm Modal (replaces browser's native confirm() so no domain-name banner shows) -->
+<div class="overlay" id="customConfirmOverlay">
+  <div class="sheet">
+    <h3 id="customConfirmTitle">ખાતરી કરો</h3>
+    <div id="customConfirmMsg" style="font-size:17px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:4px;"></div>
+    <div class="sheet-actions">
+      <button class="btn cancel" id="customConfirmCancelBtn">રદ કરો</button>
+      <button class="btn save" id="customConfirmOkBtn">ચાલુ રાખો</button>
     </div>
   </div>
 </div>
@@ -1332,28 +1344,50 @@ function downloadBackup(){
   URL.revokeObjectURL(url);
   showToast('બેકઅપ ડાઉનલોડ થયો');
 }
+function showCustomConfirm(message, onConfirm, onCancel){
+  document.getElementById('customConfirmMsg').textContent = message;
+  const overlay = document.getElementById('customConfirmOverlay');
+  const okBtn = document.getElementById('customConfirmOkBtn');
+  const cancelBtn = document.getElementById('customConfirmCancelBtn');
+  const newOk = okBtn.cloneNode(true);
+  okBtn.parentNode.replaceChild(newOk, okBtn);
+  const newCancel = cancelBtn.cloneNode(true);
+  cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+  newOk.addEventListener('click', function(){
+    overlay.classList.remove('open');
+    if(onConfirm) onConfirm();
+  });
+  newCancel.addEventListener('click', function(){
+    overlay.classList.remove('open');
+    if(onCancel) onCancel();
+  });
+  overlay.classList.add('open');
+}
 function restoreBackup(ev){
   const file = ev.target.files[0];
   if(!file) return;
-  if(!confirm('આ હાલનો બધો ડેટા બદલી નાખશે. ચાલુ રાખવું છે?')){ ev.target.value=''; return; }
-  const reader = new FileReader();
-  reader.onload = function(e){
-    try{
-      const parsed = JSON.parse(e.target.result);
-      if(!parsed || !parsed.groups) throw new Error('invalid');
-      data = parsed;
-      saveData();
-      setGroup(Object.keys(data.groups)[0] || null);
-      expandedParty = null;
-      closeOverlay('backupOverlay');
-      renderAll();
-      showToast('બેકઅપ પાછું આવ્યું');
-    }catch(err){
-      showToast('આ ફાઇલ બરાબર બેકઅપ ફાઇલ નથી');
-    }
+  showCustomConfirm('આ હાલનો બધો ડેટા બદલી નાખશે. ચાલુ રાખવું છે?', function(){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        const parsed = JSON.parse(e.target.result);
+        if(!parsed || !parsed.groups) throw new Error('invalid');
+        data = parsed;
+        saveData();
+        setGroup(Object.keys(data.groups)[0] || null);
+        expandedParty = null;
+        closeOverlay('backupOverlay');
+        renderAll();
+        showToast('બેકઅપ પાછું આવ્યું');
+      }catch(err){
+        showToast('આ ફાઇલ બરાબર બેકઅપ ફાઇલ નથી');
+      }
+      ev.target.value='';
+    };
+    reader.readAsText(file);
+  }, function(){
     ev.target.value='';
-  };
-  reader.readAsText(file);
+  });
 }
 
 /* ---- Turnover (yearly / month-wise graph) ---- */
