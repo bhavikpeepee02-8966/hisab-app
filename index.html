@@ -1411,11 +1411,12 @@ function computeTurnover(){
 }
 function computeCollection(){
   // Collection = total જમા (payment received - cash/GPay/bank etc) amount, by entry date.
+  // "માલ જમા" (goods returned, not actual cash) is excluded so Collection reflects real money received.
   const byYear={};
   Object.keys(data.groups).forEach(gr=>{
     Object.keys(data.groups[gr].parties).forEach(p=>{
       data.groups[gr].parties[p].entries.forEach(e=>{
-        if(e.type==='jama'){
+        if(e.type==='jama' && e.mode!=='માલ જમા'){
           const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
           if(!byYear[y]) byYear[y]=new Array(12).fill(0);
           byYear[y][m]+=e.amount;
@@ -1427,12 +1428,13 @@ function computeCollection(){
 }
 function computeCollectionByGroup(){
   // group -> year -> [12 months] of જમા (collection) totals
+  // "માલ જમા" (goods returned, not actual cash) is excluded so Collection reflects real money received.
   const byGroup={};
   Object.keys(data.groups).forEach(gr=>{
     const byYear={};
     Object.keys(data.groups[gr].parties).forEach(p=>{
       data.groups[gr].parties[p].entries.forEach(e=>{
-        if(e.type==='jama'){
+        if(e.type==='jama' && e.mode!=='માલ જમા'){
           const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
           if(!byYear[y]) byYear[y]=new Array(12).fill(0);
           byYear[y][m]+=e.amount;
