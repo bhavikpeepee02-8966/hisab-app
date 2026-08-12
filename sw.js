@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hisab-chopdi-v2';
+const CACHE_NAME = 'hisab-chopdi-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -34,6 +34,15 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response && response.status === 200) {
             const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => cached || caches.match('./index.html'));
+      return cached || network;
+    })
+  );
+});
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
           }
           return response;
