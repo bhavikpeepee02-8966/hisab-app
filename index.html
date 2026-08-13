@@ -248,6 +248,10 @@
     color:var(--ink-soft);background:var(--card);cursor:pointer;
   }
   .to-tab.sel{border-color:#7A4E1E;background:#F3E4C8;color:#7A4E1E;}
+  .switch{width:42px;height:24px;border-radius:12px;background:var(--paper-line);position:relative;transition:background .2s;flex-shrink:0;}
+  .switch.on{background:var(--gold);}
+  .switch::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+  .switch.on::after{left:20px;}
   .sheet-actions{
     display:flex;gap:10px;margin-top:16px;
     position:sticky;bottom:0;background:var(--paper);
@@ -484,18 +488,26 @@
 
 <!-- Turnover Modal -->
 <div class="overlay" id="turnoverOverlay">
-  <div class="sheet">
+  <div class="sheet tall">
     <h3>ટર્નઓવર / કલેક્શન</h3>
-    <div style="display:flex;gap:8px;margin-bottom:12px;">
-      <div class="to-tab sel" id="to_tab_turnover" onclick="switchToTab('turnover')">📈 ટર્નઓવર</div>
-      <div class="to-tab" id="to_tab_collection" onclick="switchToTab('collection')">💰 કલેક્શન</div>
-      <div class="to-tab" id="to_tab_compare" onclick="switchToTab('compare')">📊 સરખામણી</div>
+    <div class="sheet-body">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div class="to-tab sel" id="to_tab_turnover" onclick="switchToTab('turnover')">📈 ટર્નઓવર</div>
+        <div class="to-tab" id="to_tab_collection" onclick="switchToTab('collection')">💰 કલેક્શન</div>
+        <div class="to-tab" id="to_tab_compare" onclick="switchToTab('compare')">📊 સરખામણી</div>
+      </div>
+      <div class="field" id="cashOnlyField" style="display:none;">
+        <label style="display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--ink-soft);font-weight:600;cursor:pointer;margin-bottom:0;" onclick="toggleCashOnly()">
+          <span>💵 ફક્ત રોકડ (Google Pay/બેંક/ચેક બાદ)</span>
+          <div class="switch" id="cashOnlySwitch"></div>
+        </label>
+      </div>
+      <div class="field">
+        <label>વર્ષ</label>
+        <select id="to_year" onchange="renderTurnover()"></select>
+      </div>
+      <div id="to_results"></div>
     </div>
-    <div class="field">
-      <label>વર્ષ</label>
-      <select id="to_year" onchange="renderTurnover()"></select>
-    </div>
-    <div id="to_results"></div>
     <div class="sheet-actions">
       <button class="btn cancel" onclick="closeOverlay('turnoverOverlay')">બંધ કરો</button>
     </div>
@@ -1393,6 +1405,12 @@ function restoreBackup(ev){
 /* ---- Turnover (yearly / month-wise graph) ---- */
 const monShort=['જાન્યુ','ફેબ્રુ','માર્ચ','એપ્રિલ','મે','જૂન','જુલાઈ','ઓગ','સપ્ટ','ઓક્ટ','નવે','ડિસે'];
 let toMode = 'turnover';
+let cashOnlyFilter = false;
+function toggleCashOnly(){
+  cashOnlyFilter = !cashOnlyFilter;
+  document.getElementById('cashOnlySwitch').classList.toggle('on', cashOnlyFilter);
+  renderTurnover();
+}
 function computeTurnover(){
   // Turnover = total ઉધાર (sale/business) amount, by entry date. Payments (જમા) are not counted.
   const byYear={};
@@ -1409,14 +1427,15 @@ function computeTurnover(){
   });
   return byYear;
 }
-function computeCollection(){
+function computeCollection(cashOnly){
   // Collection = total જમા (payment received - cash/GPay/bank etc) amount, by entry date.
   // "માલ જમા" (goods returned, not actual cash) is excluded so Collection reflects real money received.
+  // If cashOnly, only રોકડ (cash) entries are counted, excluding Google Pay/બેંક/ચેક.
   const byYear={};
   Object.keys(data.groups).forEach(gr=>{
     Object.keys(data.groups[gr].parties).forEach(p=>{
       data.groups[gr].parties[p].entries.forEach(e=>{
-        if(e.type==='jama' && e.mode!=='માલ જમા'){
+        if(e.type==='jama' && e.mode!=='માલ જમા' && (!cashOnly || e.mode==='રોકડ')){
           const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
           if(!byYear[y]) byYear[y]=new Array(12).fill(0);
           byYear[y][m]+=e.amount;
@@ -1426,15 +1445,16 @@ function computeCollection(){
   });
   return byYear;
 }
-function computeCollectionByGroup(){
+function computeCollectionByGroup(cashOnly){
   // group -> year -> [12 months] of જમા (collection) totals
   // "માલ જમા" (goods returned, not actual cash) is excluded so Collection reflects real money received.
+  // If cashOnly, only રોકડ (cash) entries are counted, excluding Google Pay/બેંક/ચેક.
   const byGroup={};
   Object.keys(data.groups).forEach(gr=>{
     const byYear={};
     Object.keys(data.groups[gr].parties).forEach(p=>{
       data.groups[gr].parties[p].entries.forEach(e=>{
-        if(e.type==='jama' && e.mode!=='માલ જમા'){
+        if(e.type==='jama' && e.mode!=='માલ જમા' && (!cashOnly || e.mode==='રોકડ')){
           const y=e.date.slice(0,4), m=parseInt(e.date.slice(5,7),10)-1;
           if(!byYear[y]) byYear[y]=new Array(12).fill(0);
           byYear[y][m]+=e.amount;
@@ -1450,6 +1470,7 @@ function switchToTab(mode){
   document.getElementById('to_tab_turnover').classList.toggle('sel', mode==='turnover');
   document.getElementById('to_tab_collection').classList.toggle('sel', mode==='collection');
   document.getElementById('to_tab_compare').classList.toggle('sel', mode==='compare');
+  document.getElementById('cashOnlyField').style.display = mode==='collection' ? 'block' : 'none';
   renderTurnover();
 }
 function openTurnover(){
@@ -1457,6 +1478,7 @@ function openTurnover(){
   document.getElementById('to_tab_turnover').classList.add('sel');
   document.getElementById('to_tab_collection').classList.remove('sel');
   document.getElementById('to_tab_compare').classList.remove('sel');
+  document.getElementById('cashOnlyField').style.display = 'none';
   const t = computeTurnover(), c = computeCollection();
   const years = Array.from(new Set([...Object.keys(t), ...Object.keys(c)])).sort();
   const ySel = document.getElementById('to_year');
@@ -1470,10 +1492,10 @@ function openTurnover(){
   document.getElementById('turnoverOverlay').classList.add('open');
   if(years.length>0) renderTurnover();
 }
-function renderGroupCollectionTable(y){
+function renderGroupCollectionTable(y, cashOnly){
   const groups = Object.keys(data.groups);
   if(groups.length===0) return '';
-  const byGroup = computeCollectionByGroup();
+  const byGroup = computeCollectionByGroup(cashOnly);
   const monthTotals = new Array(12).fill(0);
   let grandTotal = 0;
   const rows = groups.map(gr=>{
@@ -1495,10 +1517,10 @@ function renderGroupCollectionTable(y){
     </div>
   `;
 }
-function renderGroupYearlyCollectionTable(){
+function renderGroupYearlyCollectionTable(cashOnly){
   const groups = Object.keys(data.groups);
   if(groups.length===0) return '';
-  const byGroup = computeCollectionByGroup();
+  const byGroup = computeCollectionByGroup(cashOnly);
   const allYears = new Set();
   groups.forEach(gr=>{ Object.keys(byGroup[gr]||{}).forEach(y=>allYears.add(y)); });
   const years = Array.from(allYears).sort();
@@ -1580,12 +1602,12 @@ function renderCompare(){
 }
 function renderTurnover(){
   if(toMode==='compare'){ renderCompare(); return; }
-  const byYear = toMode==='turnover' ? computeTurnover() : computeCollection();
+  const byYear = toMode==='turnover' ? computeTurnover() : computeCollection(cashOnlyFilter);
   const y = document.getElementById('to_year').value;
   const months = byYear[y] || new Array(12).fill(0);
   const total = months.reduce((a,b)=>a+b,0);
   const max = Math.max(...months, 1);
-  const label = toMode==='turnover' ? 'ટર્નઓવર' : 'કલેક્શન';
+  const label = toMode==='turnover' ? 'ટર્નઓવર' : (cashOnlyFilter ? 'કલેક્શન (રોકડ)' : 'કલેક્શન');
   const barColor = toMode==='turnover' ? 'linear-gradient(180deg,var(--gold),#8a6226)' : 'linear-gradient(180deg,var(--jama),#0f4a2c)';
 
   const bars = months.map((v,i)=>{
@@ -1606,7 +1628,7 @@ function renderTurnover(){
     </div>`;
   }).join('');
 
-  const groupTable = toMode==='collection' ? renderGroupCollectionTable(y) + renderGroupYearlyCollectionTable() : '';
+  const groupTable = toMode==='collection' ? renderGroupCollectionTable(y, cashOnlyFilter) + renderGroupYearlyCollectionTable(cashOnlyFilter) : '';
 
   document.getElementById('to_results').innerHTML = `
     <div style="text-align:center;margin:8px 0 14px;">
@@ -1724,6 +1746,20 @@ if (navigator.storage && navigator.storage.persist) {
     console.log('Persistent storage granted:', granted);
   });
 }
+
+// Lock page (background) scroll whenever any modal/overlay is open, so scrolling
+// inside a modal (e.g. Turnover tables) doesn't also scroll the page behind it.
+(function(){
+  const applyLock = () => {
+    const anyOpen = document.querySelector('.overlay.open');
+    document.body.style.overflow = anyOpen ? 'hidden' : '';
+  };
+  document.querySelectorAll('.overlay').forEach(o => {
+    new MutationObserver(applyLock).observe(o, { attributes: true, attributeFilter: ['class'] });
+  });
+  applyLock();
+})();
+
 </script>
 </body>
 </html>
