@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "io.github.bhavikpeepee02_8966.hisab",
-        "sha256_cert_fingerprints": ["2F:37:F4:D7:B2:E9:97:53:DC:83:CD:98:30:AC:84:03:7C:28:96:C5:76:00:35:09:DF:E8:F8:DC:D9:05:FD:A1"]
-      }
-    }]
