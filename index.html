@@ -457,18 +457,24 @@
   </div>
 </div>
 
-<!-- Backup / Restore Modal -->
+<!-- GitHub Cloud Sync Modal -->
 <div class="overlay" id="backupOverlay">
   <div class="sheet">
-    <h3>બેકઅપ / રિસ્ટોર</h3>
-    <button class="add-party-btn" style="margin-bottom:10px;" onclick="downloadBackup()">⬆️ બેકઅપ ડાઉનલોડ કરો</button>
-    <label class="add-party-btn" style="display:block;text-align:center;border-color:var(--jama);color:var(--jama);cursor:pointer;">
-      ⬇️ બેકઅપ પાછું લાવો (Restore)
-      <input type="file" id="restoreFile" accept="application/json" style="display:none;" onchange="restoreBackup(event)">
-    </label>
-    <div style="font-size:11.5px;color:var(--ink-soft);margin-top:12px;line-height:1.6;">
-      બેકઅપ ફાઇલ WhatsApp, Google Drive કે Email માં સેવ કરી રાખો — ફોન બદલો કે ડિલિટ થાય તોય ડેટા પાછો લાવી શકાશે. ✔ Restore કરવાથી હાલનો બધો ડેટા બદલાઈ જશે, એટલે જૂનું બેકઅપ સાચવીને જ Restore કરવું.
+    <h3>☁️ GitHub Cloud Sync</h3>
+    <p style="font-size:11.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 12px;">ડેટા તમારા private GitHub repo માં જાય છે. Chrome cache/data clear થાય તો પણ અહીંથી પાછો મેળવી શકાશે. એકવાર ભરીને "Save" કરો — પછી કોઈ પણ ડેટા બદલાય એટલે થોડી સેકન્ડમાં આપોઆપ sync થઈ જશે.</p>
+    <label style="font-size:11px;color:var(--ink-soft);display:block;margin:8px 0 3px;">GitHub Username</label>
+    <input type="text" id="ghOwner" placeholder="દા.ત. bhavikpeepee02-8966" style="width:100%;padding:9px 10px;border:1px solid var(--line,#ccc);border-radius:8px;font-size:14px;box-sizing:border-box;">
+    <label style="font-size:11px;color:var(--ink-soft);display:block;margin:8px 0 3px;">Repo નામ</label>
+    <input type="text" id="ghRepo" placeholder="દા.ત. Bvkdatabkp" style="width:100%;padding:9px 10px;border:1px solid var(--line,#ccc);border-radius:8px;font-size:14px;box-sizing:border-box;">
+    <label style="font-size:11px;color:var(--ink-soft);display:block;margin:8px 0 3px;">Personal Access Token</label>
+    <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx" style="width:100%;padding:9px 10px;border:1px solid var(--line,#ccc);border-radius:8px;font-size:14px;box-sizing:border-box;">
+    <label style="font-size:11px;color:var(--ink-soft);display:block;margin:8px 0 3px;">ફાઈલ નામ (repo માં)</label>
+    <input type="text" id="ghPath" placeholder="hisab-chopadi.json" style="width:100%;padding:9px 10px;border:1px solid var(--line,#ccc);border-radius:8px;font-size:14px;box-sizing:border-box;">
+    <div class="sheet-actions" style="margin-top:12px;">
+      <button class="btn cancel" id="ghRestoreBtn">⬇️ Restore</button>
+      <button class="add-party-btn" id="ghSaveBtn" style="border:none;background:var(--jama);color:#fff;">⬆️ Cloud Save</button>
     </div>
+    <p id="ghSyncStatus" style="font-size:11.5px;margin-top:10px;min-height:1.2em;"></p>
     <div class="sheet-actions">
       <button class="btn cancel" onclick="closeOverlay('backupOverlay')">બંધ કરો</button>
     </div>
@@ -1340,22 +1346,9 @@ function exportMonthImage(){
   });
 }
 
-/* ---- Backup / Restore ---- */
+/* ---- GitHub Cloud Sync overlay ---- */
 function openBackup(){
   document.getElementById('backupOverlay').classList.add('open');
-}
-function downloadBackup(){
-  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const today = todayLocal();
-  a.href = url;
-  a.download = 'hisab_backup_'+today+'.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('બેકઅપ ડાઉનલોડ થયો');
 }
 function showCustomConfirm(message, onConfirm, onCancel){
   document.getElementById('customConfirmMsg').textContent = message;
@@ -1375,32 +1368,6 @@ function showCustomConfirm(message, onConfirm, onCancel){
     if(onCancel) onCancel();
   });
   overlay.classList.add('open');
-}
-function restoreBackup(ev){
-  const file = ev.target.files[0];
-  if(!file) return;
-  showCustomConfirm('આ હાલનો બધો ડેટા બદલી નાખશે. ચાલુ રાખવું છે?', function(){
-    const reader = new FileReader();
-    reader.onload = function(e){
-      try{
-        const parsed = JSON.parse(e.target.result);
-        if(!parsed || !parsed.groups) throw new Error('invalid');
-        data = parsed;
-        saveData();
-        setGroup(Object.keys(data.groups)[0] || null);
-        expandedParty = null;
-        closeOverlay('backupOverlay');
-        renderAll();
-        showToast('બેકઅપ પાછું આવ્યું');
-      }catch(err){
-        showToast('આ ફાઇલ બરાબર બેકઅપ ફાઇલ નથી');
-      }
-      ev.target.value='';
-    };
-    reader.readAsText(file);
-  }, function(){
-    ev.target.value='';
-  });
 }
 
 /* ---- Turnover (yearly / month-wise graph) ---- */
@@ -1760,6 +1727,125 @@ if (navigator.storage && navigator.storage.persist) {
   });
   applyLock();
 })();
+
+// ================= Backup: GitHub Cloud Sync (Automatic) =================
+const BACKUP_KEYS = ['hisab_chopdi_data_v1'];
+const GH_DEFAULTS = { owner:'bhavikpeepee02-8966', repo:'Bvkdatabkp', token:'', path:'hisab-chopadi.json' };
+const GH_SETTINGS_KEY = 'ghSyncSettingsV1_' + GH_DEFAULTS.path;
+
+function collectAllData(){
+  const out = {};
+  BACKUP_KEYS.forEach(k=>{
+    const v = localStorage.getItem(k);
+    if(v !== null) out[k] = v;
+  });
+  return out;
+}
+function restoreAllData(obj){
+  BACKUP_KEYS.forEach(k=>{
+    if(obj[k] !== undefined) localStorage.setItem(k, obj[k]);
+    else localStorage.removeItem(k);
+  });
+}
+function loadGhSettings(){
+  try{ return JSON.parse(localStorage.getItem(GH_SETTINGS_KEY)) || {}; }catch(e){ return {}; }
+}
+function saveGhSettings(s){ localStorage.setItem(GH_SETTINGS_KEY, JSON.stringify(s)); }
+
+const ghOwnerInput = document.getElementById('ghOwner');
+const ghRepoInput = document.getElementById('ghRepo');
+const ghTokenInput = document.getElementById('ghToken');
+const ghPathInput = document.getElementById('ghPath');
+const ghSyncStatus = document.getElementById('ghSyncStatus');
+
+(function initGhFields(){
+  const s = loadGhSettings();
+  ghOwnerInput.value = s.owner || GH_DEFAULTS.owner;
+  ghRepoInput.value = s.repo || GH_DEFAULTS.repo;
+  ghTokenInput.value = s.token || GH_DEFAULTS.token;
+  ghPathInput.value = GH_DEFAULTS.path;
+})();
+
+function currentGhConfig(){
+  return {
+    owner: ghOwnerInput.value.trim(),
+    repo: ghRepoInput.value.trim(),
+    token: ghTokenInput.value.trim(),
+    path: (ghPathInput.value.trim() || GH_DEFAULTS.path)
+  };
+}
+function setGhStatus(msg, ok){
+  ghSyncStatus.textContent = msg;
+  ghSyncStatus.style.color = ok===true ? 'var(--jama)' : (ok===false ? '#B3261E' : 'var(--ink-soft)');
+}
+
+async function pushToCloud(silent){
+  const cfg = currentGhConfig();
+  if(!cfg.owner || !cfg.repo || !cfg.token || !cfg.path){ if(!silent) setGhStatus('❌ Username, Repo, Token અને ફાઈલ નામ ભરવું જરૂરી છે.', false); return; }
+  saveGhSettings({ owner:cfg.owner, repo:cfg.repo, token:cfg.token, path:cfg.path });
+  if(!silent) setGhStatus('⏳ Save થઈ રહ્યું છે...');
+  try{
+    const dataStr = JSON.stringify(collectAllData());
+    const apiUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}`;
+    let sha = undefined;
+    const getRes = await fetch(apiUrl, { headers:{ 'Authorization':`token ${cfg.token}`, 'Accept':'application/vnd.github+json' } });
+    if(getRes.status === 200){ const getJson = await getRes.json(); sha = getJson.sha; }
+    else if(getRes.status !== 404){ throw new Error('GitHub read error: '+getRes.status); }
+    const putRes = await fetch(apiUrl, {
+      method:'PUT',
+      headers:{ 'Authorization':`token ${cfg.token}`, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        message: 'Auto backup ' + new Date().toISOString(),
+        content: btoa(unescape(encodeURIComponent(dataStr))),
+        sha
+      })
+    });
+    if(!putRes.ok){ const t = await putRes.text(); throw new Error('GitHub save error: '+putRes.status+' '+t.slice(0,150)); }
+    setGhStatus('✅ Auto-sync થઈ ગયું ('+new Date().toLocaleString('gu-IN')+')', true);
+  }catch(err){
+    setGhStatus('❌ Auto-sync નિષ્ફળ: '+err.message, false);
+  }
+}
+document.getElementById('ghSaveBtn').addEventListener('click', ()=> pushToCloud(false));
+
+let autoSyncTimer = null;
+function scheduleAutoSync(){
+  const s = loadGhSettings();
+  if(!s.owner || !s.repo || !s.token || !s.path) return;
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(()=> pushToCloud(true), 4000);
+}
+(function watchLocalStorageForAutoSync(){
+  const origSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(key, value){
+    origSetItem(key, value);
+    if(BACKUP_KEYS.indexOf(key) !== -1) scheduleAutoSync();
+  };
+})();
+
+document.getElementById('ghRestoreBtn').addEventListener('click', async ()=>{
+  const cfg = currentGhConfig();
+  if(!cfg.owner || !cfg.repo || !cfg.token || !cfg.path){ setGhStatus('❌ Username, Repo, Token અને ફાઈલ નામ ભરવું જરૂરી છે.', false); return; }
+  if(!confirm('Cloud માંથી Restore કરવાથી આ ફોન પરનો હાલનો ડેટા બદલાઈ જશે. આગળ વધવું છે?')) return;
+  saveGhSettings({ owner:cfg.owner, repo:cfg.repo, token:cfg.token, path:cfg.path });
+  setGhStatus('⏳ Restore થઈ રહ્યું છે...');
+  try{
+    const apiUrl = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(cfg.path)}`;
+    const getRes = await fetch(apiUrl, { headers:{ 'Authorization':`token ${cfg.token}`, 'Accept':'application/vnd.github+json' } });
+    if(getRes.status === 404){ setGhStatus('❌ Cloud પર હજુ કોઈ backup ફાઈલ નથી — પહેલા "Save" કરો.', false); return; }
+    if(!getRes.ok){ throw new Error('GitHub read error: '+getRes.status); }
+    const getJson = await getRes.json();
+    const dataStr = decodeURIComponent(escape(atob(getJson.content.replace(/\n/g,''))));
+    let plainObj;
+    try{ plainObj = JSON.parse(dataStr); }
+    catch(e){ setGhStatus('❌ Cloud પરનો ડેટા વાંચી ના શકાયો.', false); return; }
+    restoreAllData(plainObj);
+    setGhStatus('✅ Restore થઈ ગયું — પેજ ફરી લોડ થાય છે...', true);
+    setTimeout(()=>location.reload(), 900);
+  }catch(err){
+    setGhStatus('❌ Restore નિષ્ફળ: '+err.message, false);
+  }
+});
 
 </script>
 </body>
